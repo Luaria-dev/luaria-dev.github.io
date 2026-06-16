@@ -842,15 +842,19 @@
     };
 
     const gunAnimation = {
-      state: "idle",
+      state: "loading",
       frame: 78,
       timer: 0,
-      frameTime: 0.018,
+      frameTime: 0.033,
       reloadStart: 0,
       reloadEnd: 77,
       shootStart: 78,
       shootEnd: 135,
-      pendingReloadBudget: false
+      pendingReloadBudget: false,
+      frames: [],
+      loadedCount: 0,
+      totalFrames: 136,
+      ready: false
     };
 
     initHud();
@@ -1048,6 +1052,7 @@
 
       createOfficeRoom();
       createStaticEnemy();
+      preloadGunFrames();
 
       window.addEventListener("resize", onResize);
       document.addEventListener("keydown", onKeyDown);
@@ -1807,18 +1812,84 @@
 
 
 
+
+    function preloadGunFrames() {
+      if (!gunSprite) return;
+
+      gunAnimation.state = "loading";
+      gunAnimation.ready = false;
+      gunAnimation.frames = new Array(gunAnimation.totalFrames);
+      gunAnimation.loadedCount = 0;
+
+      if (gunStatus) gunStatus.textContent = "LOADING GUN 0%";
+
+      for (let i = 0; i < gunAnimation.totalFrames; i++) {
+        const img = new Image();
+        const src = gunFramePath(i);
+
+        img.onload = function () {
+          gunAnimation.frames[i] = img;
+          gunAnimation.loadedCount += 1;
+
+          const percent = Math.round((gunAnimation.loadedCount / gunAnimation.totalFrames) * 100);
+          if (gunStatus && gunAnimation.state === "loading") {
+            gunStatus.textContent = "LOADING GUN " + percent + "%";
+          }
+
+          if (i === gunAnimation.shootStart) {
+            gunSprite.src = img.src;
+          }
+
+          if (gunAnimation.loadedCount >= gunAnimation.totalFrames) {
+            gunAnimation.ready = true;
+            gunAnimation.state = "idle";
+            setGunFrame(gunAnimation.shootStart);
+            if (gunStatus) gunStatus.textContent = "READY";
+          }
+        };
+
+        img.onerror = function () {
+          console.warn("No se pudo cargar frame del arma:", src);
+          gunAnimation.loadedCount += 1;
+
+          if (gunAnimation.loadedCount >= gunAnimation.totalFrames) {
+            gunAnimation.ready = true;
+            gunAnimation.state = "idle";
+            setGunFrame(gunAnimation.shootStart);
+            if (gunStatus) gunStatus.textContent = "READY";
+          }
+        };
+
+        img.src = src;
+      }
+    }
+
+
     function gunFramePath(frameNumber) {
       return "assets/gun_frames/gun_" + String(frameNumber).padStart(3, "0") + ".webp";
     }
 
     function setGunFrame(frameNumber) {
       gunAnimation.frame = frameNumber;
-      if (gunSprite) {
+
+      if (!gunSprite) return;
+
+      const cachedFrame = gunAnimation.frames && gunAnimation.frames[frameNumber];
+
+      if (cachedFrame && cachedFrame.src) {
+        gunSprite.src = cachedFrame.src;
+      } else {
         gunSprite.src = gunFramePath(frameNumber);
       }
     }
 
+
     function startGunReload() {
+      if (!gunAnimation.ready) {
+        if (gunStatus) gunStatus.textContent = "GUN LOADING";
+        return;
+      }
+
       if (gunAnimation.state !== "idle") return;
 
       gunAnimation.state = "reloading";
@@ -1829,7 +1900,13 @@
       if (gunStatus) gunStatus.textContent = "RELOADING";
     }
 
+
     function startGunShoot() {
+      if (!gunAnimation.ready) {
+        if (gunStatus) gunStatus.textContent = "GUN LOADING";
+        return false;
+      }
+
       if (gunAnimation.state !== "idle") return false;
       if (hud.budget <= 0) return false;
 
@@ -1841,13 +1918,19 @@
       return true;
     }
 
+
     function updateGunAnimation(delta) {
+      if (gunAnimation.state === "loading") {
+        return;
+      }
+
       if (gunAnimation.state === "idle") {
         if (gunStatus) gunStatus.textContent = "READY";
         return;
       }
 
       gunAnimation.timer += delta;
+
       if (gunAnimation.timer < gunAnimation.frameTime) return;
 
       gunAnimation.timer = 0;
@@ -1876,6 +1959,7 @@
         if (gunAnimation.frame > gunAnimation.shootEnd) {
           gunAnimation.state = "idle";
           setGunFrame(gunAnimation.shootStart);
+
           if (gunStatus) gunStatus.textContent = "READY";
           return;
         }
@@ -1883,6 +1967,7 @@
         setGunFrame(gunAnimation.frame);
       }
     }
+
 
 
 

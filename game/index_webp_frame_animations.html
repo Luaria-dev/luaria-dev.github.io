@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruiter Doom - Oficina</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.82);
+      color: white;
+      z-index: 30;
+      text-align: center;
+      padding: 24px;
+    }
+
+    #panel {
+      max-width: 720px;
+      border: 3px solid white;
+      padding: 24px;
+      background: #151515;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      color: #f5d742;
+      font-size: 42px;
+    }
+
+    p {
+      line-height: 1.5;
+      font-size: 18px;
+    }
+
+    button {
+      font-size: 16px;
+      font-weight: bold;
+      padding: 9px 12px;
+      cursor: pointer;
+      border: 2px solid white;
+      background: #f5d742;
+      color: #111;
+      margin: 3px;
+    }
+
+    #hudHelp {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      color: white;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      font-size: 14px;
+      z-index: 5;
+      line-height: 1.4;
+    }
+
+    #crosshair {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    #crosshair::before {
+      left: 8px;
+      top: 0;
+      width: 2px;
+      height: 18px;
+    }
+
+    #crosshair::after {
+      left: 0;
+      top: 8px;
+      width: 18px;
+      height: 2px;
+    }
+
+    #doomBar {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100vw, 1500px);
+      height: 132px;
+      z-index: 8;
+      color: #e8dfc0;
+      font-family: "Courier New", monospace;
+      background: linear-gradient(#777161, #4c4a42 36%, #2a2a28 37%, #141414 100%);
+      border-top: 5px solid #0a0a0a;
+      box-shadow: 0 -4px 0 #9c9785 inset, 0 -10px 0 rgba(0,0,0,.35) inset;
+      display: grid;
+      grid-template-columns: 1fr 1.05fr 0.9fr 0.75fr;
+      gap: 8px;
+      padding: 12px 16px 14px;
+      box-sizing: border-box;
+    }
+
+    .hudSection {
+      position: relative;
+      background: #151615;
+      border: 4px solid #35342f;
+      box-shadow: 0 0 0 2px #090909, inset 0 0 0 2px #6d6759, inset 0 0 14px rgba(0,0,0,.75);
+      padding: 9px 12px;
+      overflow: hidden;
+    }
+
+    .hudSection::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      background: repeating-linear-gradient(to bottom, rgba(255,255,255,.05) 0, rgba(255,255,255,.05) 2px, transparent 2px, transparent 6px);
+      pointer-events: none;
+      opacity: .55;
+    }
+
+    .hudLabel {
+      position: relative;
+      z-index: 1;
+      color: #d8cfad;
+      font-weight: bold;
+      font-size: 18px;
+      letter-spacing: 4px;
+      text-shadow: 2px 2px #000;
+      margin-bottom: 4px;
+    }
+
+    .hudBig {
+      position: relative;
+      z-index: 1;
+      color: #8eff38;
+      font-size: clamp(34px, 4.5vw, 62px);
+      line-height: 0.95;
+      font-weight: bold;
+      text-shadow: 3px 3px #000, 0 0 10px rgba(142,255,56,.35);
+      white-space: nowrap;
+    }
+
+    .hudSub {
+      position: relative;
+      z-index: 1;
+      color: #c2b898;
+      font-size: 13px;
+      margin-top: 7px;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px #000;
+    }
+
+    .hudMeter {
+      position: relative;
+      z-index: 1;
+      height: 18px;
+      border: 3px solid #080808;
+      background: #050505;
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 2px;
+      padding: 2px;
+    }
+
+    .pip {
+      background: #222;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .pip.onCoffee {
+      background: linear-gradient(#d9a15e, #7a431c);
+      box-shadow: 0 0 6px rgba(217,161,94,.45);
+    }
+
+    .pip.onMoney {
+      background: linear-gradient(#a4ff4d, #2d9c20);
+      box-shadow: 0 0 6px rgba(142,255,56,.45);
+    }
+
+    #facePanel {
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #444039, #1a1a1a);
+    }
+
+    #facePlaceholder {
+      position: relative;
+      z-index: 1;
+      width: 124px;
+      height: 104px;
+      background: #25282d;
+      border: 5px solid #0b0b0b;
+      box-shadow: inset 0 0 0 4px #77715f, 0 0 0 2px #3a372f;
+      display: grid;
+      place-items: center;
+      color: #f5d742;
+      font-size: 12px;
+      text-align: center;
+      font-weight: bold;
+      text-shadow: 1px 1px #000;
+      overflow: hidden;
+    }
+
+    #facePlaceholder::after {
+      content: "ROSTRO";
+      white-space: pre;
+    }
+
+    #facePlaceholder.hasImage::after {
+      content: "";
+      display: none;
+    }
+
+    #faceImage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+      display: none;
+      z-index: 2;
+    }
+
+    .coffeeIcon {
+      color: #f5d742;
+      font-size: 42px;
+      line-height: 1;
+      text-shadow: 3px 3px #000;
+      position: relative;
+      z-index: 1;
+    }
+
+    .miniStats {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .statBox {
+      background: #090909;
+      border: 2px solid #464238;
+      padding: 5px;
+      color: #70eaff;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 2px 2px #000;
+    }
+
+    #moneyGun {
+      position: fixed;
+      right: 6vw;
+      bottom: 112px;
+      width: 310px;
+      height: 210px;
+      z-index: 7;
+      pointer-events: none;
+      transform-origin: 70% 80%;
+      transform: rotate(-4deg);
+      transition: transform 0.08s ease;
+      filter: drop-shadow(8px 10px 0 rgba(0,0,0,.45));
+    }
+
+    #moneyGun.shooting {
+      transform: rotate(-8deg) translateY(7px);
+    }
+
+    #moneyGun.reloading {
+      animation: reloadGun 0.45s linear;
+    }
+
+    @keyframes reloadGun {
+      0% { transform: rotate(-4deg) translateY(0); }
+      35% { transform: rotate(10deg) translateY(10px); }
+      70% { transform: rotate(-14deg) translateY(0); }
+      100% { transform: rotate(-4deg) translateY(0); }
+    }
+
+    .gunBody {
+      position: absolute;
+      left: 52px;
+      top: 64px;
+      width: 190px;
+      height: 62px;
+      background: linear-gradient(#ff3530, #b60000);
+      border: 5px solid #5c0000;
+      border-radius: 7px;
+    }
+
+    .gunBody::before {
+      content: "BUDGET GUN";
+      position: absolute;
+      left: 20px;
+      top: 17px;
+      color: #fff;
+      font-family: "Courier New", monospace;
+      font-size: 23px;
+      font-weight: bold;
+      text-shadow: 2px 2px #680000;
+    }
+
+    .gunLid {
+      position: absolute;
+      left: 116px;
+      top: 12px;
+      width: 134px;
+      height: 42px;
+      background: linear-gradient(#ff3e36, #c90000);
+      border: 5px solid #650000;
+      border-radius: 6px;
+      transform: rotate(23deg);
+    }
+
+    .gunHandle {
+      position: absolute;
+      left: 168px;
+      top: 116px;
+      width: 58px;
+      height: 84px;
+      background: linear-gradient(#cf1010, #840000);
+      border: 5px solid #550000;
+      transform: skewX(-12deg);
+      border-radius: 4px 4px 12px 12px;
+    }
+
+    .gunMouth {
+      position: absolute;
+      left: 8px;
+      top: 80px;
+      width: 58px;
+      height: 34px;
+      background: #760000;
+      border: 5px solid #4c0000;
+      border-radius: 4px;
+    }
+
+    .billInGun {
+      position: absolute;
+      left: 54px;
+      top: 48px;
+      width: 128px;
+      height: 32px;
+      background: #e9ffe6;
+      border: 3px solid #1a6f2a;
+      box-shadow: inset 0 0 0 4px #bdf5bc;
+    }
+
+    .billInGun::after {
+      content: "$";
+      position: absolute;
+      left: 52px;
+      top: -2px;
+      color: #1a6f2a;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 30px;
+    }
+
+    .flyingBill {
+      position: absolute;
+      width: 72px;
+      height: 34px;
+      background: #efffec;
+      border: 3px solid #1b702c;
+      box-shadow: inset 0 0 0 4px #bdf5bc;
+      color: #1b702c;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 26px;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      animation: flyBill 0.55s linear forwards;
+    }
+
+    @keyframes flyBill {
+      0% { opacity: 1; transform: translate(0, 0) rotate(-8deg) scale(1); }
+      100% { opacity: 0; transform: translate(-340px, -80px) rotate(-25deg) scale(.75); }
+    }
+
+    #testPanel {
+      position: fixed;
+      right: 12px;
+      top: 12px;
+      z-index: 9;
+      width: 265px;
+      background: rgba(10,10,10,.78);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,.45);
+      padding: 10px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    #testPanel h3 {
+      margin: 0 0 8px;
+      color: #f5d742;
+      font-size: 15px;
+    }
+
+    #testPanel label {
+      display: block;
+      margin: 7px 0 3px;
+    }
+
+    #testPanel input[type="range"] {
+      width: 100%;
+    }
+
+    #error {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 148px;
+      display: none;
+      background: #7a0000;
+      color: white;
+      padding: 12px;
+      border: 2px solid white;
+      z-index: 99;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 760px) {
+      #doomBar {
+        height: 118px;
+        grid-template-columns: 1fr 0.9fr 0.8fr;
+        padding: 10px;
+      }
+
+      #facePanel {
+        display: none;
+      }
+
+      #moneyGun {
+        transform: scale(.78) rotate(-4deg);
+        right: 2vw;
+        bottom: 98px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div id="panel">
+      <h1>Oficina 3D</h1>
+      <p>Base estable. Enemigo y café animados con frames WebP desde <b>assets/Enemy_frames</b> y <b>assets/cafe_frames</b>.</p>
+      <p>
+        <b>WASD</b>: moverse<br>
+        <b>Mouse</b>: mirar alrededor<br>
+        <b>Espacio</b>: saltar<br>
+        <b>Shift</b>: correr<br>
+        <b>Click izquierdo</b> o <b>F</b>: disparar billete<br>
+        <b>R</b>: recargar
+      </p>
+      <button id="startBtn">Entrar a la oficina</button>
+    </div>
+  </div>
+
+  <div id="hudHelp">
+    WASD: moverse<br>
+    Mouse: mirar<br>
+    Espacio: saltar<br>
+    Shift: correr<br>
+    Click/F: disparar<br>
+    R: recargar
+  </div>
+
+  <div id="crosshair"></div>
+  <div id="error"></div>
+
+  <div id="doomBar">
+    <div class="hudSection">
+      <div class="hudLabel">BUDGET</div>
+      <div class="hudBig" id="budgetText">$100K</div>
+      <div class="hudMeter" id="budgetMeter"></div>
+      <div class="hudSub">MUNICIÓN: CONTRATACIONES Y BONOS</div>
+    </div>
+
+    <div class="hudSection" id="facePanel">
+      <div id="facePlaceholder">
+        <img id="faceImage" alt="Recruiter face" />
+      </div>
+    </div>
+
+    <div class="hudSection">
+      <div class="hudLabel">COFFEE</div>
+      <div class="hudBig" id="coffeeText">10☕</div>
+      <div class="hudMeter" id="coffeeMeter"></div>
+      <div class="hudSub">VIDA: TAZAS DE CAFÉ</div>
+    </div>
+
+    <div class="hudSection">
+      <div class="hudLabel">OFFICE</div>
+      <div class="coffeeIcon">☕</div>
+      <div class="miniStats">
+        <div class="statBox">CV<br><span>24</span></div>
+        <div class="statBox">HIRES<br><span>02</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="moneyGun">
+    <div class="billInGun"></div>
+    <div class="gunLid"></div>
+    <div class="gunMouth"></div>
+    <div class="gunBody"></div>
+    <div class="gunHandle"></div>
+  </div>
+
+  <div id="testPanel">
+    <h3>CONTROLES DE PRUEBA</h3>
+    <label for="coffeeControl">Café / Vida: <span id="coffeeControlValue">10</span> tazas</label>
+    <input id="coffeeControl" type="range" min="0" max="10" step="1" value="10" />
+    <label for="budgetControl">Budget / Munición: $<span id="budgetControlValue">100</span>K</label>
+    <input id="budgetControl" type="range" min="0" max="100000" step="5000" value="100000" />
+    <button id="coffeeMinusBtn">- Café</button>
+    <button id="coffeePlusBtn">+ Café</button>
+    <button id="testShootBtn">Disparar</button>
+    <button id="testReloadBtn">Recargar</button>
+    <button id="testResetBtn">Reset</button>
+    <button id="testFacesBtn">Probar rostros</button>
+  </div>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+  <script>
+    const errorBox = document.getElementById("error");
+    window.addEventListener("error", function (event) {
+      errorBox.style.display = "block";
+      errorBox.textContent = "Error: " + event.message;
+    });
+
+    if (!window.THREE) {
+      throw new Error("No se pudo cargar Three.js.");
+    }
+
+    const overlay = document.getElementById("overlay");
+    const startBtn = document.getElementById("startBtn");
+    const budgetText = document.getElementById("budgetText");
+    const coffeeText = document.getElementById("coffeeText");
+    const budgetMeter = document.getElementById("budgetMeter");
+    const coffeeMeter = document.getElementById("coffeeMeter");
+    const facePlaceholder = document.getElementById("facePlaceholder");
+    const faceImage = document.getElementById("faceImage");
+    const moneyGun = document.getElementById("moneyGun");
+    const coffeeControl = document.getElementById("coffeeControl");
+    const budgetControl = document.getElementById("budgetControl");
+    const coffeeControlValue = document.getElementById("coffeeControlValue");
+    const budgetControlValue = document.getElementById("budgetControlValue");
+    const coffeeMinusBtn = document.getElementById("coffeeMinusBtn");
+    const coffeePlusBtn = document.getElementById("coffeePlusBtn");
+    const testShootBtn = document.getElementById("testShootBtn");
+    const testReloadBtn = document.getElementById("testReloadBtn");
+    const testResetBtn = document.getElementById("testResetBtn");
+    const testFacesBtn = document.getElementById("testFacesBtn");
+
+    let scene, camera, renderer;
+    let yaw = 0;
+    let pitch = 0;
+
+    const keys = {};
+    const RENDER_SCALE = 0.65;
+    const colliders = [];
+    const room = { width: 34, depth: 34, height: 6 };
+
+    const player = {
+      x: 0,
+      y: 1.7,
+      z: 10,
+      radius: 0.45,
+      height: 1.7,
+      velocityY: 0,
+      onGround: true
+    };
+
+    const hud = {
+      coffee: 10,
+      maxCoffee: 10,
+      budget: 100000
+    };
+
+    const faceFiles = {
+      face1: ["assets/recruiter_80_100.gif", "assets/cara 1.png"],
+      face2: ["assets/recruiter_50_79.gif", "assets/cara 2.png"],
+      face3: ["assets/recruiter_20_49.gif", "assets/cara 3.png"],
+      face4: ["assets/recruiter_critical.gif", "assets/cara 4.png"]
+    };
+
+    const clock = new THREE.Clock();
+    const textureLoader = new THREE.TextureLoader();
+
+    let coffeeThermos = null;
+    let coffeeSpawnTimer = 4;
+    let enemySprite = null;
+    let enemyRadius = 0.95;
+    let enemyTouchCooldown = 0;
+
+    const enemyAnimation = {
+      textures: [],
+      frame: 0,
+      timer: 0,
+      frameTime: 0.09
+    };
+
+    const coffeeAnimation = {
+      textures: [],
+      frame: 0,
+      timer: 0,
+      frameTime: 0.16
+    };
+
+    initHud();
+    init();
+    animate();
+
+    function initHud() {
+      for (let i = 0; i < 20; i++) {
+        const b = document.createElement("div");
+        b.className = "pip onMoney";
+        budgetMeter.appendChild(b);
+
+        const c = document.createElement("div");
+        c.className = "pip onCoffee";
+        coffeeMeter.appendChild(c);
+      }
+
+      updateHud();
+    }
+
+    function updateHud() {
+      hud.coffee = Math.max(0, Math.min(hud.maxCoffee, hud.coffee));
+      hud.budget = Math.max(0, Math.min(100000, hud.budget));
+
+      budgetText.textContent = "$" + Math.round(hud.budget / 1000) + "K";
+      coffeeText.textContent = Math.round(hud.coffee) + "☕";
+
+      coffeeControl.value = hud.coffee;
+      budgetControl.value = hud.budget;
+      coffeeControlValue.textContent = Math.round(hud.coffee);
+      budgetControlValue.textContent = Math.round(hud.budget / 1000);
+
+      const budgetOn = Math.round((hud.budget / 100000) * 20);
+      const coffeeOn = Math.round((hud.coffee / hud.maxCoffee) * 20);
+
+      budgetMeter.querySelectorAll(".pip").forEach(function (pip, index) {
+        pip.className = index < budgetOn ? "pip onMoney" : "pip";
+      });
+
+      coffeeMeter.querySelectorAll(".pip").forEach(function (pip, index) {
+        pip.className = index < coffeeOn ? "pip onCoffee" : "pip";
+      });
+
+      updateFaceByCoffee();
+    }
+
+    function updateFaceByCoffee() {
+      let faceClass = "face4";
+      if (hud.coffee >= 8) faceClass = "face1";
+      else if (hud.coffee >= 5) faceClass = "face2";
+      else if (hud.coffee >= 2) faceClass = "face3";
+
+      if (faceImage.dataset.faceClass === faceClass && faceImage.style.display === "block") return;
+
+      faceImage.dataset.faceClass = faceClass;
+      loadFaceCandidate(faceFiles[faceClass], 0, faceClass);
+    }
+
+    function loadFaceCandidate(list, index, faceClass) {
+      if (!list || index >= list.length) {
+        faceImage.style.display = "none";
+        faceImage.removeAttribute("src");
+        facePlaceholder.classList.remove("hasImage");
+        return;
+      }
+
+      const path = new URL(list[index], window.location.href).href;
+      const test = new Image();
+
+      test.onload = function () {
+        if (faceImage.dataset.faceClass !== faceClass) return;
+        faceImage.onload = function () {
+          faceImage.style.display = "block";
+          facePlaceholder.classList.add("hasImage");
+        };
+        faceImage.onerror = function () {
+          loadFaceCandidate(list, index + 1, faceClass);
+        };
+        faceImage.src = path;
+      };
+
+      test.onerror = function () {
+        loadFaceCandidate(list, index + 1, faceClass);
+      };
+
+      test.src = path;
+    }
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x101114);
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(player.x, player.y, player.z);
+
+      renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+      renderer.setPixelRatio(1);
+      renderer.setSize(Math.floor(window.innerWidth * RENDER_SCALE), Math.floor(window.innerHeight * RENDER_SCALE), false);
+      renderer.domElement.style.width = "100vw";
+      renderer.domElement.style.height = "100vh";
+      document.body.appendChild(renderer.domElement);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.58));
+
+      const mainLight = new THREE.DirectionalLight(0xffffff, 0.55);
+      mainLight.position.set(8, 10, 6);
+      scene.add(mainLight);
+
+      const officeLight = new THREE.PointLight(0xffffff, 0.75, 45);
+      officeLight.position.set(0, 4.8, 0);
+      scene.add(officeLight);
+
+      createOfficeRoom();
+      createStaticEnemy();
+
+      window.addEventListener("resize", onResize);
+      document.addEventListener("keydown", onKeyDown);
+      document.addEventListener("keyup", onKeyUp);
+      document.addEventListener("mousemove", onMouseMove);
+
+      startBtn.addEventListener("click", enterOffice);
+      overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) enterOffice();
+      });
+
+      renderer.domElement.addEventListener("click", function () {
+        if (overlay.style.display === "none" && document.pointerLockElement !== renderer.domElement) {
+          renderer.domElement.requestPointerLock();
+        }
+      });
+
+      renderer.domElement.addEventListener("mousedown", function (event) {
+        if (overlay.style.display === "none" && event.button === 0) {
+          fireMoneyGun();
+        }
+      });
+
+      coffeeControl.addEventListener("input", function () {
+        hud.coffee = Number(coffeeControl.value);
+        updateHud();
+      });
+
+      budgetControl.addEventListener("input", function () {
+        hud.budget = Number(budgetControl.value);
+        updateHud();
+      });
+
+      coffeeMinusBtn.addEventListener("click", function () {
+        hud.coffee -= 1;
+        updateHud();
+      });
+
+      coffeePlusBtn.addEventListener("click", function () {
+        hud.coffee += 1;
+        updateHud();
+      });
+
+      testShootBtn.addEventListener("click", fireMoneyGun);
+      testReloadBtn.addEventListener("click", reloadMoneyGun);
+
+      testResetBtn.addEventListener("click", function () {
+        hud.coffee = 10;
+        hud.budget = 100000;
+        updateHud();
+      });
+
+      testFacesBtn.addEventListener("click", function () {
+        const values = [10, 7, 3, 1];
+        let i = 0;
+        function nextFace() {
+          hud.coffee = values[i];
+          updateHud();
+          i++;
+          if (i < values.length) setTimeout(nextFace, 1200);
+        }
+        nextFace();
+      });
+    }
+
+    function enterOffice() {
+      overlay.style.display = "none";
+      if (renderer && renderer.domElement.requestPointerLock) {
+        renderer.domElement.requestPointerLock();
+      }
+    }
+
+    function createOfficeRoom() {
+      colliders.length = 0;
+
+      const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x25272a, roughness: 0.95 });
+      const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x8c8f94, roughness: 0.82 });
+      const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0x74777c, roughness: 0.92 });
+      const baseboardMaterial = new THREE.MeshStandardMaterial({ color: 0x5a351f, roughness: 0.75 });
+      const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x704321, roughness: 0.68 });
+      const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x2b2f34, roughness: 0.55 });
+      const cubicleMaterial = new THREE.MeshStandardMaterial({ color: 0x5f6368, roughness: 0.9 });
+      const cubicleTopMaterial = new THREE.MeshStandardMaterial({ color: 0x34373b, roughness: 0.8 });
+      const windowMaterial = new THREE.MeshStandardMaterial({ color: 0x7cc7e8, metalness: 0.1, roughness: 0.18, transparent: true, opacity: 0.58 });
+
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(room.width, room.depth), floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      scene.add(floor);
+      addOfficeCarpetPattern();
+
+      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(room.width, room.depth), ceilingMaterial);
+      ceiling.rotation.x = Math.PI / 2;
+      ceiling.position.y = room.height;
+      scene.add(ceiling);
+      addCeilingGrid();
+
+      addWall(0, room.height / 2, -room.depth / 2, room.width, room.height, 0.25, wallMaterial);
+      addWall(0, room.height / 2, room.depth / 2, room.width, room.height, 0.25, wallMaterial);
+      addWall(-room.width / 2, room.height / 2, 0, 0.25, room.height, room.depth, wallMaterial);
+      addWall(room.width / 2, room.height / 2, 0, 0.25, room.height, room.depth, wallMaterial);
+
+      addBaseboards(baseboardMaterial);
+      addDoors(doorMaterial, frameMaterial);
+      addWindows(windowMaterial, frameMaterial);
+      addCubicles(cubicleMaterial, cubicleTopMaterial);
+      addPosters();
+      addCeilingLights();
+
+      const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x3b2a20, roughness: 0.7 });
+      const table = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.22, 1.8), tableMaterial);
+      table.position.set(0, 0.78, 0);
+      scene.add(table);
+      addCollider(0, 0, 3.6, 2.2, player.radius);
+    }
+
+    function addWall(x, y, z, sx, sy, sz, material) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+      wall.position.set(x, y, z);
+      scene.add(wall);
+    }
+
+    function addOfficeCarpetPattern() {
+      const lineMaterialA = new THREE.LineBasicMaterial({ color: 0x36393d });
+      const lineMaterialB = new THREE.LineBasicMaterial({ color: 0x1f2124 });
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+
+      for (let x = -halfW; x <= halfW; x += 1) {
+        const material = Math.round(x) % 2 === 0 ? lineMaterialA : lineMaterialB;
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.012, -halfD), new THREE.Vector3(x, 0.012, halfD)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+
+      for (let z = -halfD; z <= halfD; z += 1) {
+        const material = Math.round(z) % 2 === 0 ? lineMaterialB : lineMaterialA;
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-halfW, 0.014, z), new THREE.Vector3(halfW, 0.014, z)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+    }
+
+    function addCeilingGrid() {
+      const material = new THREE.LineBasicMaterial({ color: 0x55585d });
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      const y = room.height - 0.018;
+
+      for (let x = -halfW; x <= halfW; x += 2) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, -halfD), new THREE.Vector3(x, y, halfD)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+
+      for (let z = -halfD; z <= halfD; z += 2) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-halfW, y, z), new THREE.Vector3(halfW, y, z)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+    }
+
+    function addBaseboards(material) {
+      const h = 0.32;
+      const y = h / 2 + 0.02;
+      const t = 0.18;
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      addWall(0, y, -halfD + 0.16, room.width, h, t, material);
+      addWall(0, y, halfD - 0.16, room.width, h, t, material);
+      addWall(-halfW + 0.16, y, 0, t, h, room.depth, material);
+      addWall(halfW - 0.16, y, 0, t, h, room.depth, material);
+    }
+
+    function addDoors(doorMaterial, frameMaterial) {
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      addWall(0, 1.65, -halfD + 0.31, 3, 3.3, 0.12, doorMaterial);
+      addWall(0, 1.65, halfD - 0.31, 3, 3.3, 0.12, doorMaterial);
+      addWall(halfW - 0.31, 1.65, 0, 0.12, 3.3, 3, doorMaterial);
+      addWall(-halfW + 0.31, 1.65, 0, 0.12, 3.3, 3, doorMaterial);
+    }
+
+    function addWindows(windowMaterial, frameMaterial) {
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      addWindow(-8.5, 3.35, -halfD + 0.34, 5.2, 2.4, "north", windowMaterial);
+      addWindow(8.5, 3.35, -halfD + 0.34, 5.2, 2.4, "north", windowMaterial);
+      addWindow(-8.5, 3.35, halfD - 0.34, 5.2, 2.4, "south", windowMaterial);
+      addWindow(8.5, 3.35, halfD - 0.34, 5.2, 2.4, "south", windowMaterial);
+      addWindow(-halfW + 0.34, 3.35, -8.5, 5.2, 2.4, "west", windowMaterial);
+      addWindow(-halfW + 0.34, 3.35, 8.5, 5.2, 2.4, "west", windowMaterial);
+      addWindow(halfW - 0.34, 3.35, -8.5, 5.2, 2.4, "east", windowMaterial);
+      addWindow(halfW - 0.34, 3.35, 8.5, 5.2, 2.4, "east", windowMaterial);
+    }
+
+    function addWindow(x, y, z, w, h, side, material) {
+      let mesh;
+      if (side === "north" || side === "south") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.08), material);
+      } else {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, h, w), material);
+      }
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+    }
+
+    function addCubicles(cubicleMaterial, topMaterial) {
+      const positions = [
+        [-13, -13], [-9, -13], [9, -13], [13, -13],
+        [-13, 13], [-9, 13], [9, 13], [13, 13],
+        [-14.5, -7], [-14.5, 7], [14.5, -7], [14.5, 7]
+      ];
+      positions.forEach(p => addCubicle(p[0], p[1], cubicleMaterial, topMaterial));
+    }
+
+    function addCubicle(x, z, wallMaterial, topMaterial) {
+      const panelH = 1.35;
+      const panelT = 0.11;
+      const size = 2.6;
+      const deskMaterial = new THREE.MeshStandardMaterial({ color: 0x5b4634, roughness: 0.72 });
+      const chairMaterial = new THREE.MeshStandardMaterial({ color: 0x22262b, roughness: 0.78 });
+      const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x101215, roughness: 0.45 });
+      const screenMaterial = new THREE.MeshStandardMaterial({ color: 0x4db7ff, roughness: 0.2, emissive: 0x0b3650, emissiveIntensity: 0.5 });
+
+      box(x, panelH / 2, z, size, panelH, panelT, wallMaterial);
+      box(x - size / 2, panelH / 2, z + size / 2, panelT, panelH, size, wallMaterial);
+      box(x, panelH + 0.04, z, size + 0.05, 0.08, panelT + 0.05, topMaterial);
+      box(x - size / 2, panelH + 0.04, z + size / 2, panelT + 0.05, 0.08, size + 0.05, topMaterial);
+      box(x - 0.15, 0.72, z + 0.55, 1.55, 0.18, 0.78, deskMaterial);
+      box(x - 0.15, 1.12, z + 0.2, 0.72, 0.42, 0.08, monitorMaterial);
+      box(x - 0.15, 1.12, z + 0.245, 0.58, 0.3, 0.04, screenMaterial);
+      box(x - 0.15, 0.45, z + 1.25, 0.55, 0.18, 0.55, chairMaterial);
+      box(x - 0.15, 0.9, z + 1.48, 0.58, 0.78, 0.15, chairMaterial);
+      addCollider(x - 0.35, z + 0.65, 3.2, 3.3, player.radius);
+    }
+
+    function box(x, y, z, sx, sy, sz, material) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function addPosters() {
+      const posters = [
+        { x: -4.8, y: 3.05, z: -16.86, w: 2.3, h: 1.45, side: "north", file: "assets/poster1.png", label: "HIRING" },
+        { x: 4.8, y: 3.05, z: -16.86, w: 2.3, h: 1.45, side: "north", file: "assets/poster2.png", label: "BONUS" },
+        { x: -4.8, y: 3.05, z: 16.86, w: 2.3, h: 1.45, side: "south", file: "assets/poster3.png", label: "COFFEE" },
+        { x: 4.8, y: 3.05, z: 16.86, w: 2.3, h: 1.45, side: "south", file: "assets/poster4.png", label: "PTO" },
+        { x: -16.86, y: 3.05, z: -3.8, w: 2.3, h: 1.45, side: "west", file: "assets/poster1.png", label: "TARGETS" },
+        { x: 16.86, y: 3.05, z: 3.8, w: 2.3, h: 1.45, side: "east", file: "assets/poster2.png", label: "BUDGET" }
+      ];
+      posters.forEach(addPoster);
+    }
+
+    function addPoster(poster) {
+      const fallbackMaterial = createFallbackPosterMaterial(poster.label);
+      const posterMesh = new THREE.Mesh(new THREE.PlaneGeometry(poster.w, poster.h), fallbackMaterial);
+      placeWallPlane(posterMesh, poster.x, poster.y, poster.z, poster.side);
+      scene.add(posterMesh);
+
+      textureLoader.load(poster.file, function (texture) {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.NearestFilter;
+        texture.magFilter = THREE.NearestFilter;
+        posterMesh.material = new THREE.MeshBasicMaterial({ map: texture });
+      });
+
+      const frame = new THREE.Mesh(new THREE.PlaneGeometry(poster.w + 0.18, poster.h + 0.18), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+      placeWallPlane(frame, poster.x, poster.y, poster.z, poster.side);
+      if (poster.side === "north") frame.position.z -= 0.012;
+      if (poster.side === "south") frame.position.z += 0.012;
+      if (poster.side === "west") frame.position.x -= 0.012;
+      if (poster.side === "east") frame.position.x += 0.012;
+      scene.add(frame);
+      scene.remove(frame);
+      scene.add(frame);
+      scene.remove(posterMesh);
+      scene.add(frame);
+      scene.add(posterMesh);
+    }
+
+    function createFallbackPosterMaterial(label) {
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 160;
+      const g = c.getContext("2d");
+      g.fillStyle = "#d9c56c";
+      g.fillRect(0, 0, 256, 160);
+      g.fillStyle = "#111";
+      g.font = "bold 32px Courier New";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(label, 128, 80);
+      const texture = new THREE.CanvasTexture(c);
+      return new THREE.MeshBasicMaterial({ map: texture });
+    }
+
+    function placeWallPlane(mesh, x, y, z, side) {
+      mesh.position.set(x, y, z);
+      if (side === "south") mesh.rotation.y = Math.PI;
+      if (side === "west") mesh.rotation.y = Math.PI / 2;
+      if (side === "east") mesh.rotation.y = -Math.PI / 2;
+    }
+
+    function addCeilingLights() {
+      const mat = new THREE.MeshStandardMaterial({ color: 0xf7f2d5, emissive: 0xf7f2d5, emissiveIntensity: 0.45, roughness: 0.4 });
+      const positions = [[-8,-8],[0,-8],[8,-8],[-8,0],[0,0],[8,0],[-8,8],[0,8],[8,8]];
+      positions.forEach(function (p) {
+        const lightPanel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.05, 1.1), mat);
+        lightPanel.position.set(p[0], room.height - 0.04, p[1]);
+        scene.add(lightPanel);
+        const light = new THREE.PointLight(0xfff4cf, 0.28, 10);
+        light.position.set(p[0], room.height - 0.65, p[1]);
+        scene.add(light);
+      });
+    }
+
+    function addCollider(x, z, width, depth, padding) {
+      colliders.push({
+        minX: x - width / 2 - padding,
+        maxX: x + width / 2 + padding,
+        minZ: z - depth / 2 - padding,
+        maxZ: z + depth / 2 + padding
+      });
+    }
+
+    function hitsFurniture(x, z) {
+      return colliders.some(c => x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ);
+    }
+
+    function hitsEnemy(x, z) {
+      if (!enemySprite) return false;
+
+      const distance = Math.hypot(
+        x - enemySprite.position.x,
+        z - enemySprite.position.z
+      );
+
+      return distance < player.radius + enemyRadius;
+    }
+
+    function movePlayerWithCollision(moveX, moveZ) {
+      const limitX = room.width / 2 - player.radius;
+      const limitZ = room.depth / 2 - player.radius;
+
+      const nextX = Math.max(-limitX, Math.min(limitX, player.x + moveX));
+      if (!hitsFurniture(nextX, player.z) && !hitsEnemy(nextX, player.z)) player.x = nextX;
+
+      const nextZ = Math.max(-limitZ, Math.min(limitZ, player.z + moveZ));
+      if (!hitsFurniture(player.x, nextZ) && !hitsEnemy(player.x, nextZ)) player.z = nextZ;
+    }
+
+
+
+    function loadAnimationFrames(folder, prefix, count, target, extension) {
+      target.textures.length = 0;
+      target.frame = 0;
+      target.timer = 0;
+
+      for (let i = 0; i < count; i++) {
+        const number = String(i).padStart(3, "0");
+        const path = "assets/" + folder + "/" + prefix + "_" + number + "." + extension;
+
+        textureLoader.load(
+          path,
+          function (texture) {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.minFilter = THREE.NearestFilter;
+            texture.magFilter = THREE.NearestFilter;
+            target.textures[i] = texture;
+          },
+          undefined,
+          function () {
+            console.warn("No se pudo cargar frame:", path);
+          }
+        );
+      }
+    }
+
+    function updateSpriteAnimation(sprite, animation, delta) {
+      if (!sprite || animation.textures.length === 0) return;
+
+      animation.timer += delta;
+
+      if (animation.timer >= animation.frameTime) {
+        animation.timer = 0;
+        animation.frame = (animation.frame + 1) % animation.textures.length;
+      }
+
+      const texture = animation.textures[animation.frame];
+
+      if (texture && sprite.material.map !== texture) {
+        sprite.material.map = texture;
+        sprite.material.needsUpdate = true;
+      }
+    }
+
+    function createStaticEnemy() {
+      /*
+        Enemigo 2D tipo Doom:
+        - Usa assets/Enemy.gif.
+        - Es un THREE.Sprite, por eso siempre mira hacia la cámara.
+        - Por ahora es estático. No ataca, no camina y no tiene lógica de daño.
+      */
+
+      const fallbackCanvas = document.createElement("canvas");
+      fallbackCanvas.width = 256;
+      fallbackCanvas.height = 320;
+      const g = fallbackCanvas.getContext("2d");
+
+      g.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+      g.fillStyle = "#b00000";
+      g.fillRect(72, 80, 112, 170);
+
+      g.fillStyle = "#f0b080";
+      g.fillRect(88, 32, 80, 68);
+
+      g.fillStyle = "#111";
+      g.fillRect(104, 58, 16, 12);
+      g.fillRect(138, 58, 16, 12);
+      g.fillRect(108, 82, 44, 10);
+
+      g.fillStyle = "#f5d742";
+      g.font = "bold 24px Courier New";
+      g.textAlign = "center";
+      g.fillText("ENEMY", 128, 286);
+
+      const fallbackTexture = new THREE.CanvasTexture(fallbackCanvas);
+      fallbackTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const material = new THREE.SpriteMaterial({
+        map: fallbackTexture,
+        transparent: true,
+        depthWrite: false
+      });
+
+      enemySprite = new THREE.Sprite(material);
+      enemySprite.position.set(0, 1.65, -8);
+      enemySprite.scale.set(2.5, 3.2, 1);
+      enemySprite.name = "staticEnemy";
+      scene.add(enemySprite);
+
+      loadAnimationFrames("Enemy_frames", "Enemy", 15, enemyAnimation, "webp");
+
+      const shadowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false
+      });
+
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.9, 24),
+        shadowMaterial
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.set(enemySprite.position.x, 0.025, enemySprite.position.z);
+      scene.add(shadow);
+    }
+
+    function updateStaticEnemy(delta) {
+      updateSpriteAnimation(enemySprite, enemyAnimation, delta);
+    }
+
+
+    function createCoffeeThermos() {
+      if (coffeeThermos) return;
+
+      const fallbackCanvas = document.createElement("canvas");
+      fallbackCanvas.width = 180;
+      fallbackCanvas.height = 220;
+      const g = fallbackCanvas.getContext("2d");
+
+      g.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+
+      // Placeholder por si cafe.gif no carga.
+      g.fillStyle = "#5a2d16";
+      g.fillRect(52, 88, 76, 90);
+      g.fillStyle = "#d9a15e";
+      g.fillRect(44, 72, 92, 26);
+      g.fillStyle = "#f5d742";
+      g.font = "bold 24px Courier New";
+      g.textAlign = "center";
+      g.fillText("CAFÉ", 90, 42);
+      g.font = "bold 18px Courier New";
+      g.fillText("+1", 90, 205);
+
+      const fallbackTexture = new THREE.CanvasTexture(fallbackCanvas);
+      fallbackTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const material = new THREE.SpriteMaterial({
+        map: fallbackTexture,
+        transparent: true,
+        depthWrite: false
+      });
+
+      coffeeThermos = new THREE.Sprite(material);
+      coffeeThermos.name = "coffeePickup";
+      coffeeThermos.scale.set(1.25, 1.55, 1);
+
+      const positions = [
+        [-10, -8], [10, -8], [-10, 8], [10, 8],
+        [0, -11], [0, 11], [-6, 0], [6, 0]
+      ];
+
+      const p = positions[Math.floor(Math.random() * positions.length)];
+      coffeeThermos.position.set(p[0], 0.95, p[1]);
+      scene.add(coffeeThermos);
+
+      loadAnimationFrames("cafe_frames", "cafe", 3, coffeeAnimation, "webp");
+    }
+
+    function updateCoffeeThermos(delta) {
+      coffeeSpawnTimer -= delta;
+
+      if (!coffeeThermos && coffeeSpawnTimer <= 0 && hud.coffee < hud.maxCoffee) {
+        createCoffeeThermos();
+      }
+
+      if (!coffeeThermos) return;
+
+      updateSpriteAnimation(coffeeThermos, coffeeAnimation, delta);
+
+      coffeeThermos.position.y = 0.95 + Math.sin(performance.now() * 0.004) * 0.08;
+
+      const distance = Math.hypot(
+        player.x - coffeeThermos.position.x,
+        player.z - coffeeThermos.position.z
+      );
+
+      if (distance < 1.15) {
+        hud.coffee = Math.min(hud.maxCoffee, hud.coffee + 1);
+        updateHud();
+
+        scene.remove(coffeeThermos);
+        if (coffeeThermos.material) coffeeThermos.material.dispose();
+
+        coffeeThermos = null;
+        coffeeSpawnTimer = 7 + Math.random() * 6;
+      }
+    }
+
+    function updateEnemyContact(delta) {
+      if (!enemySprite) return;
+
+      enemyTouchCooldown = Math.max(0, enemyTouchCooldown - delta);
+
+      const distance = Math.hypot(
+        player.x - enemySprite.position.x,
+        player.z - enemySprite.position.z
+      );
+
+      const minDistance = player.radius + enemyRadius;
+
+      // Bloqueo físico suave.
+      if (distance > 0.001 && distance < minDistance) {
+        const pushX = (player.x - enemySprite.position.x) / distance;
+        const pushZ = (player.z - enemySprite.position.z) / distance;
+        const overlap = minDistance - distance;
+
+        player.x += pushX * overlap;
+        player.z += pushZ * overlap;
+      }
+
+      // Daño por contacto: 1 taza por toque, con cooldown para no vaciar la vida de golpe.
+      if (distance < minDistance + 0.08 && enemyTouchCooldown <= 0) {
+        if (hud.coffee > 0) {
+          hud.coffee = Math.max(0, hud.coffee - 1);
+          updateHud();
+        }
+
+        enemyTouchCooldown = 1.0;
+      }
+    }
+
+    function fireMoneyGun() {
+      if (hud.budget <= 0) return;
+      hud.budget = Math.max(0, hud.budget - 5000);
+      updateHud();
+
+      moneyGun.classList.remove("shooting");
+      void moneyGun.offsetWidth;
+      moneyGun.classList.add("shooting");
+
+      const bill = document.createElement("div");
+      bill.className = "flyingBill";
+      bill.textContent = "$";
+      bill.style.left = "14px";
+      bill.style.top = "80px";
+      moneyGun.appendChild(bill);
+
+      setTimeout(function () {
+        bill.remove();
+        moneyGun.classList.remove("shooting");
+      }, 560);
+    }
+
+    function reloadMoneyGun() {
+      hud.budget = 100000;
+      updateHud();
+
+      moneyGun.classList.remove("reloading");
+      void moneyGun.offsetWidth;
+      moneyGun.classList.add("reloading");
+
+      setTimeout(function () {
+        moneyGun.classList.remove("reloading");
+      }, 480);
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(Math.floor(window.innerWidth * RENDER_SCALE), Math.floor(window.innerHeight * RENDER_SCALE), false);
+      renderer.domElement.style.width = "100vw";
+      renderer.domElement.style.height = "100vh";
+    }
+
+    function onKeyDown(event) {
+      keys[event.code] = true;
+
+      if (event.code === "Enter" && overlay.style.display !== "none") enterOffice();
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        jump();
+      }
+
+      if (event.code === "KeyF") fireMoneyGun();
+      if (event.code === "KeyR") reloadMoneyGun();
+
+      if (event.code === "KeyC") {
+        hud.coffee = Math.max(0, hud.coffee - 1);
+        updateHud();
+      }
+
+      if (event.code === "KeyB") {
+        hud.budget = Math.max(0, hud.budget - 5000);
+        updateHud();
+      }
+
+      if (event.code === "KeyN") {
+        hud.coffee = 10;
+        hud.budget = 100000;
+        updateHud();
+      }
+    }
+
+    function onKeyUp(event) {
+      keys[event.code] = false;
+    }
+
+    function onMouseMove(event) {
+      if (document.pointerLockElement !== renderer.domElement) return;
+
+      yaw -= event.movementX * 0.0024;
+      pitch -= event.movementY * 0.0024;
+
+      const limit = Math.PI / 2 - 0.05;
+      pitch = Math.max(-limit, Math.min(limit, pitch));
+    }
+
+    function jump() {
+      if (!player.onGround) return;
+      player.velocityY = 6.5;
+      player.onGround = false;
+    }
+
+    function updatePlayer(delta) {
+      let forward = 0;
+      let right = 0;
+
+      if (keys["KeyW"]) forward += 1;
+      if (keys["KeyS"]) forward -= 1;
+      if (keys["KeyD"]) right += 1;
+      if (keys["KeyA"]) right -= 1;
+
+      const length = Math.hypot(forward, right) || 1;
+      forward /= length;
+      right /= length;
+
+      const speed = keys["ShiftLeft"] || keys["ShiftRight"] ? 8.5 : 5.2;
+
+      const forwardX = -Math.sin(yaw);
+      const forwardZ = -Math.cos(yaw);
+      const rightX = Math.cos(yaw);
+      const rightZ = -Math.sin(yaw);
+
+      const moveX = (forwardX * forward + rightX * right) * speed * delta;
+      const moveZ = (forwardZ * forward + rightZ * right) * speed * delta;
+
+      movePlayerWithCollision(moveX, moveZ);
+
+      player.velocityY -= 18 * delta;
+      player.y += player.velocityY * delta;
+
+      if (player.y <= player.height) {
+        player.y = player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+      }
+
+      camera.position.set(player.x, player.y, player.z);
+      camera.rotation.order = "YXZ";
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+      camera.rotation.z = 0;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.05);
+      updatePlayer(delta);
+      updateCoffeeThermos(delta);
+      updateStaticEnemy(delta);
+      updateEnemyContact(delta);
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>

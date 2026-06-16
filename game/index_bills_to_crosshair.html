@@ -1,0 +1,2282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recruiter Doom - Oficina</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.82);
+      color: white;
+      z-index: 30;
+      text-align: center;
+      padding: 24px;
+    }
+
+    #panel {
+      max-width: 720px;
+      border: 3px solid white;
+      padding: 24px;
+      background: #151515;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      color: #f5d742;
+      font-size: 42px;
+    }
+
+    p {
+      line-height: 1.5;
+      font-size: 18px;
+    }
+
+    button {
+      font-size: 16px;
+      font-weight: bold;
+      padding: 9px 12px;
+      cursor: pointer;
+      border: 2px solid white;
+      background: #f5d742;
+      color: #111;
+      margin: 3px;
+    }
+
+    #hudHelp {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      color: white;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      font-size: 14px;
+      z-index: 5;
+      line-height: 1.4;
+    }
+
+    #crosshair {
+      position: fixed;
+      left: 50%;
+      top: calc(50% - 58px);
+      width: 18px;
+      height: 18px;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    #crosshair::before,
+    #crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    #crosshair::before {
+      left: 8px;
+      top: 0;
+      width: 2px;
+      height: 18px;
+    }
+
+    #crosshair::after {
+      left: 0;
+      top: 8px;
+      width: 18px;
+      height: 2px;
+    }
+
+    #doomBar {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100vw, 1500px);
+      height: 132px;
+      z-index: 8;
+      color: #e8dfc0;
+      font-family: "Courier New", monospace;
+      background: linear-gradient(#777161, #4c4a42 36%, #2a2a28 37%, #141414 100%);
+      border-top: 5px solid #0a0a0a;
+      box-shadow: 0 -4px 0 #9c9785 inset, 0 -10px 0 rgba(0,0,0,.35) inset;
+      display: grid;
+      grid-template-columns: 1fr 1.05fr 0.9fr 0.75fr;
+      gap: 8px;
+      padding: 12px 16px 14px;
+      box-sizing: border-box;
+    }
+
+    .hudSection {
+      position: relative;
+      background: #151615;
+      border: 4px solid #35342f;
+      box-shadow: 0 0 0 2px #090909, inset 0 0 0 2px #6d6759, inset 0 0 14px rgba(0,0,0,.75);
+      padding: 9px 12px;
+      overflow: hidden;
+    }
+
+    .hudSection::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      background: repeating-linear-gradient(to bottom, rgba(255,255,255,.05) 0, rgba(255,255,255,.05) 2px, transparent 2px, transparent 6px);
+      pointer-events: none;
+      opacity: .55;
+    }
+
+    .hudLabel {
+      position: relative;
+      z-index: 1;
+      color: #d8cfad;
+      font-weight: bold;
+      font-size: 18px;
+      letter-spacing: 4px;
+      text-shadow: 2px 2px #000;
+      margin-bottom: 4px;
+    }
+
+    .hudBig {
+      position: relative;
+      z-index: 1;
+      color: #8eff38;
+      font-size: clamp(34px, 4.5vw, 62px);
+      line-height: 0.95;
+      font-weight: bold;
+      text-shadow: 3px 3px #000, 0 0 10px rgba(142,255,56,.35);
+      white-space: nowrap;
+    }
+
+    .hudSub {
+      position: relative;
+      z-index: 1;
+      color: #c2b898;
+      font-size: 13px;
+      margin-top: 7px;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px #000;
+    }
+
+    .hudMeter {
+      position: relative;
+      z-index: 1;
+      height: 18px;
+      border: 3px solid #080808;
+      background: #050505;
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 2px;
+      padding: 2px;
+    }
+
+    .pip {
+      background: #222;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .pip.onCoffee {
+      background: linear-gradient(#d9a15e, #7a431c);
+      box-shadow: 0 0 6px rgba(217,161,94,.45);
+    }
+
+    .pip.onMoney {
+      background: linear-gradient(#a4ff4d, #2d9c20);
+      box-shadow: 0 0 6px rgba(142,255,56,.45);
+    }
+
+    #facePanel {
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #444039, #1a1a1a);
+    }
+
+    #facePlaceholder {
+      position: relative;
+      z-index: 1;
+      width: 124px;
+      height: 104px;
+      background: #25282d;
+      border: 5px solid #0b0b0b;
+      box-shadow: inset 0 0 0 4px #77715f, 0 0 0 2px #3a372f;
+      display: grid;
+      place-items: center;
+      color: #f5d742;
+      font-size: 12px;
+      text-align: center;
+      font-weight: bold;
+      text-shadow: 1px 1px #000;
+      overflow: hidden;
+    }
+
+    #facePlaceholder::after {
+      content: "ROSTRO";
+      white-space: pre;
+    }
+
+    #facePlaceholder.hasImage::after {
+      content: "";
+      display: none;
+    }
+
+    #faceImage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+      display: none;
+      z-index: 2;
+    }
+
+    .coffeeIcon {
+      color: #f5d742;
+      font-size: 42px;
+      line-height: 1;
+      text-shadow: 3px 3px #000;
+      position: relative;
+      z-index: 1;
+    }
+
+    .miniStats {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .statBox {
+      background: #090909;
+      border: 2px solid #464238;
+      padding: 5px;
+      color: #70eaff;
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      text-shadow: 2px 2px #000;
+    }
+
+    #moneyGun {
+      position: fixed;
+      right: -10vw;
+      bottom: 142px;
+      width: min(107vw, 1456px);
+      height: min(99vw, 1196px);
+      z-index: 7;
+      pointer-events: none;
+      transform: none !important;
+      filter: drop-shadow(14px 16px 0 rgba(0,0,0,.45));
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-end;
+      overflow: visible;
+    }
+
+    #moneyGun.shooting {
+      transform: rotate(-8deg) translateY(7px);
+    }
+
+    #moneyGun.reloading {
+      animation: reloadGun 0.45s linear;
+    }
+
+    @keyframes reloadGun {
+      0% { transform: rotate(-4deg) translateY(0); }
+      35% { transform: rotate(10deg) translateY(10px); }
+      70% { transform: rotate(-14deg) translateY(0); }
+      100% { transform: rotate(-4deg) translateY(0); }
+    }
+
+    .gunBody {
+      position: absolute;
+      left: 52px;
+      top: 64px;
+      width: 190px;
+      height: 62px;
+      background: linear-gradient(#ff3530, #b60000);
+      border: 5px solid #5c0000;
+      border-radius: 7px;
+    }
+
+    .gunBody::before {
+      content: "BUDGET GUN";
+      position: absolute;
+      left: 20px;
+      top: 17px;
+      color: #fff;
+      font-family: "Courier New", monospace;
+      font-size: 23px;
+      font-weight: bold;
+      text-shadow: 2px 2px #680000;
+    }
+
+    .gunLid {
+      position: absolute;
+      left: 116px;
+      top: 12px;
+      width: 134px;
+      height: 42px;
+      background: linear-gradient(#ff3e36, #c90000);
+      border: 5px solid #650000;
+      border-radius: 6px;
+      transform: rotate(23deg);
+    }
+
+    .gunHandle {
+      position: absolute;
+      left: 168px;
+      top: 116px;
+      width: 58px;
+      height: 84px;
+      background: linear-gradient(#cf1010, #840000);
+      border: 5px solid #550000;
+      transform: skewX(-12deg);
+      border-radius: 4px 4px 12px 12px;
+    }
+
+    .gunMouth {
+      position: absolute;
+      left: 8px;
+      top: 80px;
+      width: 58px;
+      height: 34px;
+      background: #760000;
+      border: 5px solid #4c0000;
+      border-radius: 4px;
+    }
+
+    .billInGun {
+      position: absolute;
+      left: 54px;
+      top: 48px;
+      width: 128px;
+      height: 32px;
+      background: #e9ffe6;
+      border: 3px solid #1a6f2a;
+      box-shadow: inset 0 0 0 4px #bdf5bc;
+    }
+
+    .billInGun::after {
+      content: "$";
+      position: absolute;
+      left: 52px;
+      top: -2px;
+      color: #1a6f2a;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 30px;
+    }
+
+    .flyingBill {
+      position: absolute;
+      width: 72px;
+      height: 34px;
+      background: #efffec;
+      border: 3px solid #1b702c;
+      box-shadow: inset 0 0 0 4px #bdf5bc;
+      color: #1b702c;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 26px;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      animation: flyBill 0.55s linear forwards;
+    }
+
+    @keyframes flyBill {
+      0% { opacity: 1; transform: translate(0, 0) rotate(-8deg) scale(1); }
+      100% { opacity: 0; transform: translate(-340px, -80px) rotate(-25deg) scale(.75); }
+    }
+
+    #testPanel {
+      position: fixed;
+      right: 12px;
+      top: 12px;
+      z-index: 9;
+      width: 265px;
+      background: rgba(10,10,10,.78);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,.45);
+      padding: 10px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    #testPanel h3 {
+      margin: 0 0 8px;
+      color: #f5d742;
+      font-size: 15px;
+    }
+
+    #testPanel label {
+      display: block;
+      margin: 7px 0 3px;
+    }
+
+    #testPanel input[type="range"] {
+      width: 100%;
+    }
+
+    #error {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 148px;
+      display: none;
+      background: #7a0000;
+      color: white;
+      padding: 12px;
+      border: 2px solid white;
+      z-index: 99;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 760px) {
+      #doomBar {
+        height: 118px;
+        grid-template-columns: 1fr 0.9fr 0.8fr;
+        padding: 10px;
+      }
+
+      #facePanel {
+        display: none;
+      }
+
+      #moneyGun {
+        transform: scale(.78) rotate(-4deg);
+        right: 2vw;
+        bottom: 98px;
+      }
+    }
+  
+    /* Arma animada con frames WebP: más grande, detrás de la barra inferior, a la derecha */
+    #moneyGun {
+      position: fixed;
+      right: -2vw;
+      bottom: 88px;
+      width: min(66vw, 880px);
+      height: min(62vw, 760px);
+      z-index: 7;
+      pointer-events: none;
+      transform: none !important;
+      filter: drop-shadow(12px 14px 0 rgba(0,0,0,.45));
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-end;
+      overflow: visible;
+    }
+
+    #gunSprite {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: right bottom;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    #gunStatus {
+      position: fixed;
+      right: 18px;
+      bottom: 218px;
+      z-index: 9;
+      color: #f5d742;
+      background: rgba(0,0,0,.65);
+      border: 1px solid rgba(245,215,66,.7);
+      padding: 5px 8px;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      text-shadow: 1px 1px #000;
+      pointer-events: none;
+    }
+
+    @media (max-width: 760px) {
+      #moneyGun {
+        width: 146vw;
+        height: 117vw;
+        right: -40vw;
+        bottom: 126px;
+      }
+    }
+
+  
+    /* OVERRIDE FINAL: arma 30%+ más grande, siempre a la derecha y más arriba */
+    #moneyGun {
+      position: fixed !important;
+      right: -12vw !important;
+      bottom: 150px !important;
+      width: min(112vw, 1520px) !important;
+      height: min(104vw, 1250px) !important;
+      z-index: 7 !important;
+      pointer-events: none !important;
+      transform: none !important;
+      filter: drop-shadow(14px 16px 0 rgba(0,0,0,.45)) !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: flex-end !important;
+      overflow: visible !important;
+    }
+
+    #gunSprite {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      object-position: right bottom !important;
+      image-rendering: pixelated !important;
+      display: block !important;
+    }
+
+    #gunStatus {
+      bottom: 235px !important;
+    }
+
+    @media (max-width: 760px) {
+      #moneyGun {
+        width: 156vw !important;
+        height: 126vw !important;
+        right: -46vw !important;
+        bottom: 134px !important;
+      }
+    }
+
+  
+    /* OVERRIDE FINAL AJUSTADO: arma 25% más grande y sin espacio con la parte baja de la pantalla */
+    #moneyGun {
+      position: fixed !important;
+      right: -12vw !important;
+      bottom: -6px !important;
+      width: min(121vw, 1650px) !important;
+      height: min(113vw, 1356px) !important;
+      z-index: 7 !important;
+      pointer-events: none !important;
+      transform: none !important;
+      filter: drop-shadow(14px 16px 0 rgba(0,0,0,.45)) !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      align-items: flex-end !important;
+      overflow: visible !important;
+    }
+
+    #gunSprite {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      object-position: right bottom !important;
+      image-rendering: pixelated !important;
+      display: block !important;
+    }
+
+    #gunStatus {
+      bottom: 176px !important;
+    }
+
+    .screenBill {
+      position: fixed;
+      z-index: 10;
+      width: 74px;
+      height: 34px;
+      pointer-events: none;
+      background: #eaffdf;
+      border: 3px solid #1b702c;
+      box-shadow:
+        inset 0 0 0 4px #bdf5bc,
+        4px 4px 0 rgba(0,0,0,.35);
+      color: #1b702c;
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      font-size: 25px;
+      display: grid;
+      place-items: center;
+      opacity: 1;
+      image-rendering: pixelated;
+      will-change: transform, opacity;
+    }
+
+    @media (max-width: 760px) {
+      #moneyGun {
+        width: 168vw !important;
+        height: 135vw !important;
+        right: -49vw !important;
+        bottom: -10px !important;
+      }
+    }
+
+  
+    #enemyStatus {
+      position: fixed;
+      left: 50%;
+      top: 86px;
+      transform: translateX(-50%);
+      z-index: 9;
+      color: #f5d742;
+      background: rgba(0,0,0,.62);
+      border: 1px solid rgba(245,215,66,.65);
+      padding: 5px 10px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      text-shadow: 1px 1px #000;
+      pointer-events: none;
+      display: none;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <div id="panel">
+      <h1>Oficina 3D</h1>
+      <p>Base estable. Enemigo, café, arma y rostro animados con frames WebP desde <b>assets</b>.</p>
+      <p>
+        <b>WASD</b>: moverse<br>
+        <b>Mouse</b>: mirar alrededor<br>
+        <b>Espacio</b>: saltar<br>
+        <b>Shift</b>: correr<br>
+        <b>Click izquierdo</b> o <b>F</b>: disparar billete<br>
+        <b>R</b>: recargar; no dispara hasta terminar
+      </p>
+      <button id="startBtn">Entrar a la oficina</button>
+    </div>
+  </div>
+
+  <div id="hudHelp">
+    WASD: moverse<br>
+    Mouse: mirar<br>
+    Espacio: saltar<br>
+    Shift: correr<br>
+    Click/F: disparar<br>
+    R: recargar
+  </div>
+
+  <div id="crosshair"></div>
+  <div id="error"></div>
+  <div id="enemyStatus"></div>
+
+  <div id="doomBar">
+    <div class="hudSection">
+      <div class="hudLabel">BUDGET</div>
+      <div class="hudBig" id="budgetText">$100K</div>
+      <div class="hudMeter" id="budgetMeter"></div>
+      <div class="hudSub">MUNICIÓN: CONTRATACIONES Y BONOS</div>
+    </div>
+
+    <div class="hudSection" id="facePanel">
+      <div id="facePlaceholder">
+        <img id="faceImage" alt="Recruiter face" />
+      </div>
+    </div>
+
+    <div class="hudSection">
+      <div class="hudLabel">COFFEE</div>
+      <div class="hudBig" id="coffeeText">10☕</div>
+      <div class="hudMeter" id="coffeeMeter"></div>
+      <div class="hudSub">VIDA: TAZAS DE CAFÉ</div>
+    </div>
+
+    <div class="hudSection">
+      <div class="hudLabel">OFFICE</div>
+      <div class="coffeeIcon">☕</div>
+      <div class="miniStats">
+        <div class="statBox">CV<br><span>24</span></div>
+        <div class="statBox">HIRES<br><span>02</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="moneyGun">
+    <img id="gunSprite" src="assets/gun_frames/gun_078.webp" alt="Budget gun" />
+  </div>
+  <div id="gunStatus">READY</div>
+
+
+  <div id="testPanel">
+    <h3>CONTROLES DE PRUEBA</h3>
+    <label for="coffeeControl">Café / Vida: <span id="coffeeControlValue">10</span> tazas</label>
+    <input id="coffeeControl" type="range" min="0" max="10" step="1" value="10" />
+    <label for="budgetControl">Budget / Munición: $<span id="budgetControlValue">100</span>K</label>
+    <input id="budgetControl" type="range" min="0" max="100000" step="5000" value="100000" />
+    <button id="coffeeMinusBtn">- Café</button>
+    <button id="coffeePlusBtn">+ Café</button>
+    <button id="testShootBtn">Disparar</button>
+    <button id="testReloadBtn">Recargar</button>
+    <button id="testResetBtn">Reset</button>
+    <button id="testFacesBtn">Probar rostros</button>
+  </div>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+  <script>
+    const errorBox = document.getElementById("error");
+    const enemyStatus = document.getElementById("enemyStatus");
+    window.addEventListener("error", function (event) {
+      errorBox.style.display = "block";
+      errorBox.textContent = "Error: " + event.message;
+    });
+
+    if (!window.THREE) {
+      throw new Error("No se pudo cargar Three.js.");
+    }
+
+    const overlay = document.getElementById("overlay");
+    const startBtn = document.getElementById("startBtn");
+    const budgetText = document.getElementById("budgetText");
+    const coffeeText = document.getElementById("coffeeText");
+    const budgetMeter = document.getElementById("budgetMeter");
+    const coffeeMeter = document.getElementById("coffeeMeter");
+    const facePlaceholder = document.getElementById("facePlaceholder");
+    const faceImage = document.getElementById("faceImage");
+    const moneyGun = document.getElementById("moneyGun");
+    const gunSprite = document.getElementById("gunSprite");
+    const gunStatus = document.getElementById("gunStatus");
+    const coffeeControl = document.getElementById("coffeeControl");
+    const budgetControl = document.getElementById("budgetControl");
+    const coffeeControlValue = document.getElementById("coffeeControlValue");
+    const budgetControlValue = document.getElementById("budgetControlValue");
+    const coffeeMinusBtn = document.getElementById("coffeeMinusBtn");
+    const coffeePlusBtn = document.getElementById("coffeePlusBtn");
+    const testShootBtn = document.getElementById("testShootBtn");
+    const testReloadBtn = document.getElementById("testReloadBtn");
+    const testResetBtn = document.getElementById("testResetBtn");
+    const testFacesBtn = document.getElementById("testFacesBtn");
+
+    let scene, camera, renderer;
+    let yaw = 0;
+    let pitch = 0;
+
+    const keys = {};
+    const RENDER_SCALE = 0.65;
+    const colliders = [];
+    const room = { width: 34, depth: 34, height: 6 };
+
+    const player = {
+      x: 0,
+      y: 1.7,
+      z: 10,
+      radius: 0.45,
+      height: 1.7,
+      velocityY: 0,
+      onGround: true
+    };
+
+    const hud = {
+      coffee: 10,
+      maxCoffee: 10,
+      budget: 100000
+    };
+
+    const faceFiles = {
+      face1: ["assets/recruiter_80_100.gif", "assets/cara 1.png"],
+      face2: ["assets/recruiter_50_79.gif", "assets/cara 2.png"],
+      face3: ["assets/recruiter_20_49.gif", "assets/cara 3.png"],
+      face4: ["assets/recruiter_critical.gif", "assets/cara 4.png"]
+    };
+
+    const faceAnimation = {
+      texturesByState: {
+        face1: [],
+        face2: [],
+        face3: [],
+        face4: []
+      },
+      currentState: "",
+      frame: 0,
+      timer: 0,
+      frameTime: 0.11
+    };
+
+    const clock = new THREE.Clock();
+    const textureLoader = new THREE.TextureLoader();
+
+    let coffeeThermos = null;
+    let coffeeSpawnTimer = 4;
+    let enemySprite = null;
+    let enemyRadius = 0.95;
+    let enemyTouchCooldown = 0;
+    let enemyHits = 0;
+    let enemyRequiredHits = 45;
+    let enemyNeutralized = false;
+    let enemyFixedFrameIndex = 14;
+    let enemyMoveSpeed = 1.25;
+    let enemies = [];
+    let enemySpawnTimer = 9;
+    let enemySpawnIntervalMin = 8;
+    let enemySpawnIntervalMax = 14;
+    let maxActiveEnemies = 4;
+    let nextEnemyId = 1;
+
+    const enemyAnimation = {
+      textures: [],
+      frame: 0,
+      timer: 0,
+      frameTime: 0.09
+    };
+
+    const coffeeAnimation = {
+      textures: [],
+      frame: 0,
+      timer: 0,
+      frameTime: 0.16
+    };
+
+    const gunAnimation = {
+      state: "idle",
+      frame: 78,
+      timer: 0,
+      frameTime: 0.018,
+      reloadStart: 0,
+      reloadEnd: 77,
+      shootStart: 78,
+      shootEnd: 135,
+      pendingReloadBudget: false
+    };
+
+    initHud();
+    loadAllFaceAnimations();
+    init();
+    animate();
+
+
+    function loadFaceAnimationFrames(state, folder, prefix, count) {
+      const list = faceAnimation.texturesByState[state];
+      list.length = 0;
+
+      for (let i = 0; i < count; i++) {
+        const number = String(i).padStart(3, "0");
+        const path = "assets/" + folder + "/" + prefix + "_" + number + ".webp";
+
+        textureLoader.load(
+          path,
+          function (texture) {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.minFilter = THREE.NearestFilter;
+            texture.magFilter = THREE.NearestFilter;
+            list[i] = texture;
+          },
+          undefined,
+          function () {
+            console.warn("No se pudo cargar frame de rostro:", path);
+          }
+        );
+      }
+    }
+
+    function loadAllFaceAnimations() {
+      loadFaceAnimationFrames("face1", "recruiter_80_100", "recruiter_80_100", 12);
+      loadFaceAnimationFrames("face2", "recruiter_50_79", "recruiter_50_79", 12);
+      loadFaceAnimationFrames("face3", "recruiter_20_49", "recruiter_20_49", 10);
+      loadFaceAnimationFrames("face4", "recruiter_critical", "recruiter_critical", 12);
+    }
+
+    function setFaceStateFromCoffee() {
+      let nextState = "face4";
+
+      if (hud.coffee >= 8) {
+        nextState = "face1";
+      } else if (hud.coffee >= 5) {
+        nextState = "face2";
+      } else if (hud.coffee >= 2) {
+        nextState = "face3";
+      }
+
+      if (faceAnimation.currentState !== nextState) {
+        faceAnimation.currentState = nextState;
+        faceAnimation.frame = 0;
+        faceAnimation.timer = 0;
+        faceImage.dataset.faceClass = nextState;
+      }
+    }
+
+    function updateFaceAnimation(delta) {
+      if (!faceImage) return;
+
+      setFaceStateFromCoffee();
+
+      const frames = faceAnimation.texturesByState[faceAnimation.currentState] || [];
+      const validFrames = frames.filter(Boolean);
+
+      if (validFrames.length === 0) {
+        // Mientras cargan los WebP, usa el sistema anterior si existe.
+        if (typeof loadFaceCandidate === "function" && faceFiles && faceFiles[faceAnimation.currentState]) {
+          if (faceImage.dataset.legacyFaceClass !== faceAnimation.currentState) {
+            faceImage.dataset.legacyFaceClass = faceAnimation.currentState;
+            loadFaceCandidate(faceFiles[faceAnimation.currentState], 0, faceAnimation.currentState);
+          }
+        }
+        return;
+      }
+
+      faceAnimation.timer += delta;
+
+      if (faceAnimation.timer >= faceAnimation.frameTime) {
+        faceAnimation.timer = 0;
+        faceAnimation.frame = (faceAnimation.frame + 1) % validFrames.length;
+      }
+
+      const texture = validFrames[faceAnimation.frame];
+      if (!texture || !texture.image) return;
+
+      const src = texture.image.currentSrc || texture.image.src;
+      if (src && faceImage.src !== src) {
+        faceImage.src = src;
+        faceImage.style.display = "block";
+        facePlaceholder.classList.add("hasImage");
+      }
+    }
+
+
+    function initHud() {
+      for (let i = 0; i < 20; i++) {
+        const b = document.createElement("div");
+        b.className = "pip onMoney";
+        budgetMeter.appendChild(b);
+
+        const c = document.createElement("div");
+        c.className = "pip onCoffee";
+        coffeeMeter.appendChild(c);
+      }
+
+      updateHud();
+    }
+
+    function updateHud() {
+      hud.coffee = Math.max(0, Math.min(hud.maxCoffee, hud.coffee));
+      hud.budget = Math.max(0, Math.min(100000, hud.budget));
+
+      budgetText.textContent = "$" + Math.round(hud.budget / 1000) + "K";
+      coffeeText.textContent = Math.round(hud.coffee) + "☕";
+
+      coffeeControl.value = hud.coffee;
+      budgetControl.value = hud.budget;
+      coffeeControlValue.textContent = Math.round(hud.coffee);
+      budgetControlValue.textContent = Math.round(hud.budget / 1000);
+
+      const budgetOn = Math.round((hud.budget / 100000) * 20);
+      const coffeeOn = Math.round((hud.coffee / hud.maxCoffee) * 20);
+
+      budgetMeter.querySelectorAll(".pip").forEach(function (pip, index) {
+        pip.className = index < budgetOn ? "pip onMoney" : "pip";
+      });
+
+      coffeeMeter.querySelectorAll(".pip").forEach(function (pip, index) {
+        pip.className = index < coffeeOn ? "pip onCoffee" : "pip";
+      });
+
+      updateFaceByCoffee();
+    }
+
+    function updateFaceByCoffee() {
+      setFaceStateFromCoffee();
+    }
+
+
+    function loadFaceCandidate(list, index, faceClass) {
+      if (!list || index >= list.length) {
+        faceImage.style.display = "none";
+        faceImage.removeAttribute("src");
+        facePlaceholder.classList.remove("hasImage");
+        return;
+      }
+
+      const path = new URL(list[index], window.location.href).href;
+      const test = new Image();
+
+      test.onload = function () {
+        if (faceImage.dataset.faceClass !== faceClass) return;
+        faceImage.onload = function () {
+          faceImage.style.display = "block";
+          facePlaceholder.classList.add("hasImage");
+        };
+        faceImage.onerror = function () {
+          loadFaceCandidate(list, index + 1, faceClass);
+        };
+        faceImage.src = path;
+      };
+
+      test.onerror = function () {
+        loadFaceCandidate(list, index + 1, faceClass);
+      };
+
+      test.src = path;
+    }
+
+    function init() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x101114);
+
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(player.x, player.y, player.z);
+
+      renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+      renderer.setPixelRatio(1);
+      renderer.setSize(Math.floor(window.innerWidth * RENDER_SCALE), Math.floor(window.innerHeight * RENDER_SCALE), false);
+      renderer.domElement.style.width = "100vw";
+      renderer.domElement.style.height = "100vh";
+      document.body.appendChild(renderer.domElement);
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.58));
+
+      const mainLight = new THREE.DirectionalLight(0xffffff, 0.55);
+      mainLight.position.set(8, 10, 6);
+      scene.add(mainLight);
+
+      const officeLight = new THREE.PointLight(0xffffff, 0.75, 45);
+      officeLight.position.set(0, 4.8, 0);
+      scene.add(officeLight);
+
+      createOfficeRoom();
+      createStaticEnemy();
+
+      window.addEventListener("resize", onResize);
+      document.addEventListener("keydown", onKeyDown);
+      document.addEventListener("keyup", onKeyUp);
+      document.addEventListener("mousemove", onMouseMove);
+
+      startBtn.addEventListener("click", enterOffice);
+      overlay.addEventListener("click", function (event) {
+        if (event.target === overlay) enterOffice();
+      });
+
+      renderer.domElement.addEventListener("click", function () {
+        if (overlay.style.display === "none" && document.pointerLockElement !== renderer.domElement) {
+          renderer.domElement.requestPointerLock();
+        }
+      });
+
+      renderer.domElement.addEventListener("mousedown", function (event) {
+        if (overlay.style.display === "none" && gunAnimation.state === "idle" && event.button === 0) {
+          fireMoneyGun();
+        }
+      });
+
+      coffeeControl.addEventListener("input", function () {
+        hud.coffee = Number(coffeeControl.value);
+        updateHud();
+      });
+
+      budgetControl.addEventListener("input", function () {
+        hud.budget = Number(budgetControl.value);
+        updateHud();
+      });
+
+      coffeeMinusBtn.addEventListener("click", function () {
+        hud.coffee -= 1;
+        updateHud();
+      });
+
+      coffeePlusBtn.addEventListener("click", function () {
+        hud.coffee += 1;
+        updateHud();
+      });
+
+      testShootBtn.addEventListener("click", fireMoneyGun);
+      testReloadBtn.addEventListener("click", reloadMoneyGun);
+
+      testResetBtn.addEventListener("click", function () {
+        hud.coffee = 10;
+        hud.budget = 100000;
+        enemies.forEach(function (enemy) {
+          if (enemy.sprite) scene.remove(enemy.sprite);
+          if (enemy.shadow) scene.remove(enemy.shadow);
+        });
+        enemies = [];
+        enemySprite = null;
+        enemySpawnTimer = 9;
+        createEnemyInstance(0, -8);
+        if (enemyStatus) enemyStatus.style.display = "none";
+        updateHud();
+      });
+
+      testFacesBtn.addEventListener("click", function () {
+        const values = [10, 7, 3, 1];
+        let i = 0;
+        function nextFace() {
+          hud.coffee = values[i];
+          updateHud();
+          i++;
+          if (i < values.length) setTimeout(nextFace, 1200);
+        }
+        nextFace();
+      });
+    }
+
+    function enterOffice() {
+      overlay.style.display = "none";
+      if (renderer && renderer.domElement.requestPointerLock) {
+        renderer.domElement.requestPointerLock();
+      }
+    }
+
+    function createOfficeRoom() {
+      colliders.length = 0;
+
+      const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x25272a, roughness: 0.95 });
+      const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x8c8f94, roughness: 0.82 });
+      const ceilingMaterial = new THREE.MeshStandardMaterial({ color: 0x74777c, roughness: 0.92 });
+      const baseboardMaterial = new THREE.MeshStandardMaterial({ color: 0x5a351f, roughness: 0.75 });
+      const doorMaterial = new THREE.MeshStandardMaterial({ color: 0x704321, roughness: 0.68 });
+      const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x2b2f34, roughness: 0.55 });
+      const cubicleMaterial = new THREE.MeshStandardMaterial({ color: 0x5f6368, roughness: 0.9 });
+      const cubicleTopMaterial = new THREE.MeshStandardMaterial({ color: 0x34373b, roughness: 0.8 });
+      const windowMaterial = new THREE.MeshStandardMaterial({ color: 0x7cc7e8, metalness: 0.1, roughness: 0.18, transparent: true, opacity: 0.58 });
+
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(room.width, room.depth), floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      scene.add(floor);
+      addOfficeCarpetPattern();
+
+      const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(room.width, room.depth), ceilingMaterial);
+      ceiling.rotation.x = Math.PI / 2;
+      ceiling.position.y = room.height;
+      scene.add(ceiling);
+      addCeilingGrid();
+
+      addWall(0, room.height / 2, -room.depth / 2, room.width, room.height, 0.25, wallMaterial);
+      addWall(0, room.height / 2, room.depth / 2, room.width, room.height, 0.25, wallMaterial);
+      addWall(-room.width / 2, room.height / 2, 0, 0.25, room.height, room.depth, wallMaterial);
+      addWall(room.width / 2, room.height / 2, 0, 0.25, room.height, room.depth, wallMaterial);
+
+      addBaseboards(baseboardMaterial);
+      addDoors(doorMaterial, frameMaterial);
+      addWindows(windowMaterial, frameMaterial);
+      addCubicles(cubicleMaterial, cubicleTopMaterial);
+      addPosters();
+      addCeilingLights();
+
+      const tableMaterial = new THREE.MeshStandardMaterial({ color: 0x3b2a20, roughness: 0.7 });
+      const table = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.22, 1.8), tableMaterial);
+      table.position.set(0, 0.78, 0);
+      scene.add(table);
+      addCollider(0, 0, 3.6, 2.2, player.radius);
+    }
+
+    function addWall(x, y, z, sx, sy, sz, material) {
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+      wall.position.set(x, y, z);
+      scene.add(wall);
+    }
+
+    function addOfficeCarpetPattern() {
+      const lineMaterialA = new THREE.LineBasicMaterial({ color: 0x36393d });
+      const lineMaterialB = new THREE.LineBasicMaterial({ color: 0x1f2124 });
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+
+      for (let x = -halfW; x <= halfW; x += 1) {
+        const material = Math.round(x) % 2 === 0 ? lineMaterialA : lineMaterialB;
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, 0.012, -halfD), new THREE.Vector3(x, 0.012, halfD)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+
+      for (let z = -halfD; z <= halfD; z += 1) {
+        const material = Math.round(z) % 2 === 0 ? lineMaterialB : lineMaterialA;
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-halfW, 0.014, z), new THREE.Vector3(halfW, 0.014, z)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+    }
+
+    function addCeilingGrid() {
+      const material = new THREE.LineBasicMaterial({ color: 0x55585d });
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      const y = room.height - 0.018;
+
+      for (let x = -halfW; x <= halfW; x += 2) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x, y, -halfD), new THREE.Vector3(x, y, halfD)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+
+      for (let z = -halfD; z <= halfD; z += 2) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-halfW, y, z), new THREE.Vector3(halfW, y, z)]);
+        scene.add(new THREE.Line(geometry, material));
+      }
+    }
+
+    function addBaseboards(material) {
+      const h = 0.32;
+      const y = h / 2 + 0.02;
+      const t = 0.18;
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      addWall(0, y, -halfD + 0.16, room.width, h, t, material);
+      addWall(0, y, halfD - 0.16, room.width, h, t, material);
+      addWall(-halfW + 0.16, y, 0, t, h, room.depth, material);
+      addWall(halfW - 0.16, y, 0, t, h, room.depth, material);
+    }
+
+    function addDoors(doorMaterial, frameMaterial) {
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      addWall(0, 1.65, -halfD + 0.31, 3, 3.3, 0.12, doorMaterial);
+      addWall(0, 1.65, halfD - 0.31, 3, 3.3, 0.12, doorMaterial);
+      addWall(halfW - 0.31, 1.65, 0, 0.12, 3.3, 3, doorMaterial);
+      addWall(-halfW + 0.31, 1.65, 0, 0.12, 3.3, 3, doorMaterial);
+    }
+
+    function addWindows(windowMaterial, frameMaterial) {
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+      addWindow(-8.5, 3.35, -halfD + 0.34, 5.2, 2.4, "north", windowMaterial);
+      addWindow(8.5, 3.35, -halfD + 0.34, 5.2, 2.4, "north", windowMaterial);
+      addWindow(-8.5, 3.35, halfD - 0.34, 5.2, 2.4, "south", windowMaterial);
+      addWindow(8.5, 3.35, halfD - 0.34, 5.2, 2.4, "south", windowMaterial);
+      addWindow(-halfW + 0.34, 3.35, -8.5, 5.2, 2.4, "west", windowMaterial);
+      addWindow(-halfW + 0.34, 3.35, 8.5, 5.2, 2.4, "west", windowMaterial);
+      addWindow(halfW - 0.34, 3.35, -8.5, 5.2, 2.4, "east", windowMaterial);
+      addWindow(halfW - 0.34, 3.35, 8.5, 5.2, 2.4, "east", windowMaterial);
+    }
+
+    function addWindow(x, y, z, w, h, side, material) {
+      let mesh;
+      if (side === "north" || side === "south") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.08), material);
+      } else {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, h, w), material);
+      }
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+    }
+
+    function addCubicles(cubicleMaterial, topMaterial) {
+      const positions = [
+        [-13, -13], [-9, -13], [9, -13], [13, -13],
+        [-13, 13], [-9, 13], [9, 13], [13, 13],
+        [-14.5, -7], [-14.5, 7], [14.5, -7], [14.5, 7]
+      ];
+      positions.forEach(p => addCubicle(p[0], p[1], cubicleMaterial, topMaterial));
+    }
+
+    function addCubicle(x, z, wallMaterial, topMaterial) {
+      const panelH = 1.35;
+      const panelT = 0.11;
+      const size = 2.6;
+      const deskMaterial = new THREE.MeshStandardMaterial({ color: 0x5b4634, roughness: 0.72 });
+      const chairMaterial = new THREE.MeshStandardMaterial({ color: 0x22262b, roughness: 0.78 });
+      const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x101215, roughness: 0.45 });
+      const screenMaterial = new THREE.MeshStandardMaterial({ color: 0x4db7ff, roughness: 0.2, emissive: 0x0b3650, emissiveIntensity: 0.5 });
+
+      box(x, panelH / 2, z, size, panelH, panelT, wallMaterial);
+      box(x - size / 2, panelH / 2, z + size / 2, panelT, panelH, size, wallMaterial);
+      box(x, panelH + 0.04, z, size + 0.05, 0.08, panelT + 0.05, topMaterial);
+      box(x - size / 2, panelH + 0.04, z + size / 2, panelT + 0.05, 0.08, size + 0.05, topMaterial);
+      box(x - 0.15, 0.72, z + 0.55, 1.55, 0.18, 0.78, deskMaterial);
+      box(x - 0.15, 1.12, z + 0.2, 0.72, 0.42, 0.08, monitorMaterial);
+      box(x - 0.15, 1.12, z + 0.245, 0.58, 0.3, 0.04, screenMaterial);
+      box(x - 0.15, 0.45, z + 1.25, 0.55, 0.18, 0.55, chairMaterial);
+      box(x - 0.15, 0.9, z + 1.48, 0.58, 0.78, 0.15, chairMaterial);
+      addCollider(x - 0.35, z + 0.65, 3.2, 3.3, player.radius);
+    }
+
+    function box(x, y, z, sx, sy, sz, material) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+      mesh.position.set(x, y, z);
+      scene.add(mesh);
+      return mesh;
+    }
+
+    function addPosters() {
+      const posters = [
+        { x: -4.8, y: 3.05, z: -16.86, w: 2.3, h: 1.45, side: "north", file: "assets/poster1.png", label: "HIRING" },
+        { x: 4.8, y: 3.05, z: -16.86, w: 2.3, h: 1.45, side: "north", file: "assets/poster2.png", label: "BONUS" },
+        { x: -4.8, y: 3.05, z: 16.86, w: 2.3, h: 1.45, side: "south", file: "assets/poster3.png", label: "COFFEE" },
+        { x: 4.8, y: 3.05, z: 16.86, w: 2.3, h: 1.45, side: "south", file: "assets/poster4.png", label: "PTO" },
+        { x: -16.86, y: 3.05, z: -3.8, w: 2.3, h: 1.45, side: "west", file: "assets/poster1.png", label: "TARGETS" },
+        { x: 16.86, y: 3.05, z: 3.8, w: 2.3, h: 1.45, side: "east", file: "assets/poster2.png", label: "BUDGET" }
+      ];
+      posters.forEach(addPoster);
+    }
+
+    function addPoster(poster) {
+      const fallbackMaterial = createFallbackPosterMaterial(poster.label);
+      const posterMesh = new THREE.Mesh(new THREE.PlaneGeometry(poster.w, poster.h), fallbackMaterial);
+      placeWallPlane(posterMesh, poster.x, poster.y, poster.z, poster.side);
+      scene.add(posterMesh);
+
+      textureLoader.load(poster.file, function (texture) {
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.NearestFilter;
+        texture.magFilter = THREE.NearestFilter;
+        posterMesh.material = new THREE.MeshBasicMaterial({ map: texture });
+      });
+
+      const frame = new THREE.Mesh(new THREE.PlaneGeometry(poster.w + 0.18, poster.h + 0.18), new THREE.MeshBasicMaterial({ color: 0x111111 }));
+      placeWallPlane(frame, poster.x, poster.y, poster.z, poster.side);
+      if (poster.side === "north") frame.position.z -= 0.012;
+      if (poster.side === "south") frame.position.z += 0.012;
+      if (poster.side === "west") frame.position.x -= 0.012;
+      if (poster.side === "east") frame.position.x += 0.012;
+      scene.add(frame);
+      scene.remove(frame);
+      scene.add(frame);
+      scene.remove(posterMesh);
+      scene.add(frame);
+      scene.add(posterMesh);
+    }
+
+    function createFallbackPosterMaterial(label) {
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 160;
+      const g = c.getContext("2d");
+      g.fillStyle = "#d9c56c";
+      g.fillRect(0, 0, 256, 160);
+      g.fillStyle = "#111";
+      g.font = "bold 32px Courier New";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.fillText(label, 128, 80);
+      const texture = new THREE.CanvasTexture(c);
+      return new THREE.MeshBasicMaterial({ map: texture });
+    }
+
+    function placeWallPlane(mesh, x, y, z, side) {
+      mesh.position.set(x, y, z);
+      if (side === "south") mesh.rotation.y = Math.PI;
+      if (side === "west") mesh.rotation.y = Math.PI / 2;
+      if (side === "east") mesh.rotation.y = -Math.PI / 2;
+    }
+
+    function addCeilingLights() {
+      const mat = new THREE.MeshStandardMaterial({ color: 0xf7f2d5, emissive: 0xf7f2d5, emissiveIntensity: 0.45, roughness: 0.4 });
+      const positions = [[-8,-8],[0,-8],[8,-8],[-8,0],[0,0],[8,0],[-8,8],[0,8],[8,8]];
+      positions.forEach(function (p) {
+        const lightPanel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.05, 1.1), mat);
+        lightPanel.position.set(p[0], room.height - 0.04, p[1]);
+        scene.add(lightPanel);
+        const light = new THREE.PointLight(0xfff4cf, 0.28, 10);
+        light.position.set(p[0], room.height - 0.65, p[1]);
+        scene.add(light);
+      });
+    }
+
+    function addCollider(x, z, width, depth, padding) {
+      colliders.push({
+        minX: x - width / 2 - padding,
+        maxX: x + width / 2 + padding,
+        minZ: z - depth / 2 - padding,
+        maxZ: z + depth / 2 + padding
+      });
+    }
+
+    function hitsFurniture(x, z) {
+      return colliders.some(c => x > c.minX && x < c.maxX && z > c.minZ && z < c.maxZ);
+    }
+
+    function hitsEnemy(x, z) {
+      return enemies.some(function (enemy) {
+        if (enemy.neutralized || !enemy.sprite) return false;
+
+        const distance = Math.hypot(
+          x - enemy.sprite.position.x,
+          z - enemy.sprite.position.z
+        );
+
+        return distance < player.radius + enemyRadius;
+      });
+    }
+
+
+    function movePlayerWithCollision(moveX, moveZ) {
+      const limitX = room.width / 2 - player.radius;
+      const limitZ = room.depth / 2 - player.radius;
+
+      const nextX = Math.max(-limitX, Math.min(limitX, player.x + moveX));
+      if (!hitsFurniture(nextX, player.z) && !hitsEnemy(nextX, player.z)) player.x = nextX;
+
+      const nextZ = Math.max(-limitZ, Math.min(limitZ, player.z + moveZ));
+      if (!hitsFurniture(player.x, nextZ) && !hitsEnemy(player.x, nextZ)) player.z = nextZ;
+    }
+
+
+
+    function loadAnimationFrames(folder, prefix, count, target, extension) {
+      target.textures.length = 0;
+      target.frame = 0;
+      target.timer = 0;
+
+      for (let i = 0; i < count; i++) {
+        const number = String(i).padStart(3, "0");
+        const path = "assets/" + folder + "/" + prefix + "_" + number + "." + extension;
+
+        textureLoader.load(
+          path,
+          function (texture) {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.minFilter = THREE.NearestFilter;
+            texture.magFilter = THREE.NearestFilter;
+            target.textures[i] = texture;
+
+            if (target === enemyAnimation && enemyNeutralized && i === enemyFixedFrameIndex && enemySprite) {
+              enemySprite.material.map = texture;
+              enemySprite.material.needsUpdate = true;
+            }
+          },
+          undefined,
+          function () {
+            console.warn("No se pudo cargar frame:", path);
+          }
+        );
+      }
+    }
+
+    function updateSpriteAnimation(sprite, animation, delta) {
+      if (!sprite || animation.textures.length === 0) return;
+
+      const loadedFrames = animation.textures.filter(Boolean);
+      if (loadedFrames.length === 0) return;
+
+      animation.timer += delta;
+
+      if (animation.timer >= animation.frameTime) {
+        animation.timer = 0;
+        animation.frame = (animation.frame + 1) % loadedFrames.length;
+      }
+
+      const texture = loadedFrames[animation.frame % loadedFrames.length];
+
+      if (texture && sprite.material.map !== texture) {
+        sprite.material.map = texture;
+        sprite.material.needsUpdate = true;
+      }
+    }
+
+
+    function createEnemyInstance(x, z) {
+      const fallbackCanvas = document.createElement("canvas");
+      fallbackCanvas.width = 256;
+      fallbackCanvas.height = 320;
+      const g = fallbackCanvas.getContext("2d");
+
+      g.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+      g.fillStyle = "#b00000";
+      g.fillRect(72, 80, 112, 170);
+      g.fillStyle = "#f0b080";
+      g.fillRect(88, 32, 80, 68);
+      g.fillStyle = "#111";
+      g.fillRect(104, 58, 16, 12);
+      g.fillRect(138, 58, 16, 12);
+      g.fillRect(108, 82, 44, 10);
+      g.fillStyle = "#f5d742";
+      g.font = "bold 24px Courier New";
+      g.textAlign = "center";
+      g.fillText("ENEMY", 128, 286);
+
+      const fallbackTexture = new THREE.CanvasTexture(fallbackCanvas);
+      fallbackTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const material = new THREE.SpriteMaterial({
+        map: fallbackTexture,
+        transparent: true,
+        depthWrite: false
+      });
+
+      const sprite = new THREE.Sprite(material);
+      sprite.position.set(x, 1.65, z);
+      sprite.scale.set(2.5, 3.2, 1);
+      sprite.name = "enemy_" + nextEnemyId;
+      scene.add(sprite);
+
+      const shadowMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false
+      });
+
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(0.9, 24),
+        shadowMaterial
+      );
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.set(sprite.position.x, 0.025, sprite.position.z);
+      shadow.name = "enemyShadow_" + nextEnemyId;
+      scene.add(shadow);
+
+      const enemy = {
+        id: nextEnemyId++,
+        sprite: sprite,
+        shadow: shadow,
+        hits: 0,
+        requiredHits: enemyRequiredHits,
+        neutralized: false,
+        touchCooldown: 0
+      };
+
+      enemies.push(enemy);
+
+      // Compatibilidad con código anterior: el primer enemigo también queda en enemySprite.
+      if (!enemySprite) {
+        enemySprite = sprite;
+      }
+
+      const firstFrame = enemyAnimation.textures[0];
+      if (firstFrame) {
+        sprite.material.map = firstFrame;
+        sprite.material.needsUpdate = true;
+      }
+
+      return enemy;
+    }
+
+    function spawnEnemyFromDoor() {
+      const activeEnemies = enemies.filter(function (enemy) {
+        return !enemy.neutralized;
+      }).length;
+
+      if (activeEnemies >= maxActiveEnemies) return;
+
+      const halfW = room.width / 2;
+      const halfD = room.depth / 2;
+
+      const doorSpawns = [
+        { x: 0, z: -halfD + 2.1 },      // norte
+        { x: 0, z: halfD - 2.1 },       // sur
+        { x: halfW - 2.1, z: 0 },       // este
+        { x: -halfW + 2.1, z: 0 }       // oeste
+      ];
+
+      const spawn = doorSpawns[Math.floor(Math.random() * doorSpawns.length)];
+      createEnemyInstance(spawn.x, spawn.z);
+    }
+
+    function getNearestActiveEnemy() {
+      let best = null;
+      let bestDistance = Infinity;
+
+      enemies.forEach(function (enemy) {
+        if (enemy.neutralized || !enemy.sprite) return;
+
+        const distance = Math.hypot(
+          player.x - enemy.sprite.position.x,
+          player.z - enemy.sprite.position.z
+        );
+
+        if (distance < bestDistance) {
+          best = enemy;
+          bestDistance = distance;
+        }
+      });
+
+      return best;
+    }
+
+    function updateEnemySpawner(delta) {
+      enemySpawnTimer -= delta;
+
+      if (enemySpawnTimer <= 0) {
+        spawnEnemyFromDoor();
+        enemySpawnTimer = enemySpawnIntervalMin + Math.random() * (enemySpawnIntervalMax - enemySpawnIntervalMin);
+      }
+    }
+
+
+    function createStaticEnemy() {
+      /*
+        Enemigo inicial tipo Doom.
+        Luego aparecerán nuevos enemigos desde puertas cada cierto tiempo.
+      */
+      createEnemyInstance(0, -8);
+
+      loadAnimationFrames("Enemy_frames", "Enemy", 15, enemyAnimation, "webp");
+
+      // Carga inmediata del primer frame real para evitar placeholder.
+      textureLoader.load(
+        "assets/Enemy_frames/Enemy_000.webp",
+        function (texture) {
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.minFilter = THREE.NearestFilter;
+          texture.magFilter = THREE.NearestFilter;
+          enemyAnimation.textures[0] = texture;
+
+          enemies.forEach(function (enemy) {
+            if (enemy.sprite && !enemy.neutralized) {
+              enemy.sprite.material.map = texture;
+              enemy.sprite.material.needsUpdate = true;
+            }
+          });
+        },
+        undefined,
+        function () {
+          console.warn("No se pudo cargar assets/Enemy_frames/Enemy_000.webp.");
+        }
+      );
+    }
+
+
+    function updateStaticEnemy(delta) {
+      const loadedFrames = enemyAnimation.textures.filter(Boolean);
+      if (loadedFrames.length === 0) return;
+
+      if (!updateStaticEnemy._timer) updateStaticEnemy._timer = 0;
+      if (!updateStaticEnemy._frame) updateStaticEnemy._frame = 0;
+
+      updateStaticEnemy._timer += delta;
+
+      if (updateStaticEnemy._timer >= enemyAnimation.frameTime) {
+        updateStaticEnemy._timer = 0;
+        updateStaticEnemy._frame = (updateStaticEnemy._frame + 1) % loadedFrames.length;
+      }
+
+      const texture = loadedFrames[updateStaticEnemy._frame];
+
+      enemies.forEach(function (enemy) {
+        if (enemy.neutralized || !enemy.sprite) return;
+
+        if (enemy.sprite.material.map !== texture) {
+          enemy.sprite.material.map = texture;
+          enemy.sprite.material.needsUpdate = true;
+        }
+      });
+    }
+
+
+
+
+    function createCoffeeThermos() {
+      if (coffeeThermos) return;
+
+      const fallbackCanvas = document.createElement("canvas");
+      fallbackCanvas.width = 180;
+      fallbackCanvas.height = 220;
+      const g = fallbackCanvas.getContext("2d");
+
+      g.clearRect(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+
+      // Placeholder por si cafe.gif no carga.
+      g.fillStyle = "#5a2d16";
+      g.fillRect(52, 88, 76, 90);
+      g.fillStyle = "#d9a15e";
+      g.fillRect(44, 72, 92, 26);
+      g.fillStyle = "#f5d742";
+      g.font = "bold 24px Courier New";
+      g.textAlign = "center";
+      g.fillText("CAFÉ", 90, 42);
+      g.font = "bold 18px Courier New";
+      g.fillText("+1", 90, 205);
+
+      const fallbackTexture = new THREE.CanvasTexture(fallbackCanvas);
+      fallbackTexture.colorSpace = THREE.SRGBColorSpace;
+
+      const material = new THREE.SpriteMaterial({
+        map: fallbackTexture,
+        transparent: true,
+        depthWrite: false
+      });
+
+      coffeeThermos = new THREE.Sprite(material);
+      coffeeThermos.name = "coffeePickup";
+      coffeeThermos.scale.set(1.25, 1.55, 1);
+
+      const positions = [
+        [-10, -8], [10, -8], [-10, 8], [10, 8],
+        [0, -11], [0, 11], [-6, 0], [6, 0]
+      ];
+
+      const p = positions[Math.floor(Math.random() * positions.length)];
+      coffeeThermos.position.set(p[0], 0.95, p[1]);
+      scene.add(coffeeThermos);
+
+      loadAnimationFrames("cafe_frames", "cafe", 3, coffeeAnimation, "webp");
+    }
+
+    function updateCoffeeThermos(delta) {
+      coffeeSpawnTimer -= delta;
+
+      if (!coffeeThermos && coffeeSpawnTimer <= 0) {
+        createCoffeeThermos();
+      }
+
+      if (!coffeeThermos) return;
+
+      updateSpriteAnimation(coffeeThermos, coffeeAnimation, delta);
+
+      coffeeThermos.position.y = 0.95 + Math.sin(performance.now() * 0.004) * 0.08;
+
+      const distance = Math.hypot(
+        player.x - coffeeThermos.position.x,
+        player.z - coffeeThermos.position.z
+      );
+
+      if (distance < 1.15) {
+        hud.coffee = Math.min(hud.maxCoffee, hud.coffee + 1);
+        updateHud();
+
+        scene.remove(coffeeThermos);
+        if (coffeeThermos.material) coffeeThermos.material.dispose();
+
+        coffeeThermos = null;
+        coffeeSpawnTimer = 7 + Math.random() * 6;
+      }
+    }
+
+
+    function canEnemyMoveTo(x, z) {
+      // Evita que el enemigo atraviese muebles grandes usando los mismos colliders.
+      return !hitsFurniture(x, z);
+    }
+
+    function updateEnemyMovement(delta) {
+      enemies.forEach(function (enemy) {
+        if (!enemy.sprite || enemy.neutralized) return;
+
+        const dx = player.x - enemy.sprite.position.x;
+        const dz = player.z - enemy.sprite.position.z;
+        const distance = Math.hypot(dx, dz);
+
+        const stopDistance = player.radius + enemyRadius + 0.12;
+        if (distance <= stopDistance) return;
+
+        const dirX = dx / distance;
+        const dirZ = dz / distance;
+        const step = enemyMoveSpeed * delta;
+
+        const nextX = enemy.sprite.position.x + dirX * step;
+        const nextZ = enemy.sprite.position.z + dirZ * step;
+
+        if (canEnemyMoveTo(nextX, enemy.sprite.position.z)) {
+          enemy.sprite.position.x = nextX;
+        }
+
+        if (canEnemyMoveTo(enemy.sprite.position.x, nextZ)) {
+          enemy.sprite.position.z = nextZ;
+        }
+
+        if (enemy.shadow) {
+          enemy.shadow.position.x = enemy.sprite.position.x;
+          enemy.shadow.position.z = enemy.sprite.position.z;
+        }
+      });
+    }
+
+
+
+    function updateEnemyContact(delta) {
+      enemies.forEach(function (enemy) {
+        if (!enemy.sprite || enemy.neutralized) return;
+
+        enemy.touchCooldown = Math.max(0, enemy.touchCooldown - delta);
+
+        const distance = Math.hypot(
+          player.x - enemy.sprite.position.x,
+          player.z - enemy.sprite.position.z
+        );
+
+        const minDistance = player.radius + enemyRadius;
+
+        if (distance > 0.001 && distance < minDistance) {
+          const pushX = (player.x - enemy.sprite.position.x) / distance;
+          const pushZ = (player.z - enemy.sprite.position.z) / distance;
+          const overlap = minDistance - distance;
+
+          player.x += pushX * overlap;
+          player.z += pushZ * overlap;
+        }
+
+        if (distance < minDistance + 0.08 && enemy.touchCooldown <= 0) {
+          if (hud.coffee > 0) {
+            hud.coffee = Math.max(0, hud.coffee - 1);
+            updateHud();
+          }
+
+          enemy.touchCooldown = 1.0;
+        }
+      });
+    }
+
+
+
+    function gunFramePath(frameNumber) {
+      return "assets/gun_frames/gun_" + String(frameNumber).padStart(3, "0") + ".webp";
+    }
+
+    function setGunFrame(frameNumber) {
+      gunAnimation.frame = frameNumber;
+      if (gunSprite) {
+        gunSprite.src = gunFramePath(frameNumber);
+      }
+    }
+
+    function startGunReload() {
+      if (gunAnimation.state !== "idle") return;
+
+      gunAnimation.state = "reloading";
+      gunAnimation.timer = 0;
+      gunAnimation.pendingReloadBudget = true;
+      setGunFrame(gunAnimation.reloadStart);
+
+      if (gunStatus) gunStatus.textContent = "RELOADING";
+    }
+
+    function startGunShoot() {
+      if (gunAnimation.state !== "idle") return false;
+      if (hud.budget <= 0) return false;
+
+      gunAnimation.state = "shooting";
+      gunAnimation.timer = 0;
+      setGunFrame(gunAnimation.shootStart);
+
+      if (gunStatus) gunStatus.textContent = "FIRING";
+      return true;
+    }
+
+    function updateGunAnimation(delta) {
+      if (gunAnimation.state === "idle") {
+        if (gunStatus) gunStatus.textContent = "READY";
+        return;
+      }
+
+      gunAnimation.timer += delta;
+      if (gunAnimation.timer < gunAnimation.frameTime) return;
+
+      gunAnimation.timer = 0;
+      gunAnimation.frame += 1;
+
+      if (gunAnimation.state === "reloading") {
+        if (gunAnimation.frame > gunAnimation.reloadEnd) {
+          gunAnimation.state = "idle";
+          setGunFrame(gunAnimation.shootStart);
+
+          if (gunAnimation.pendingReloadBudget) {
+            hud.budget = 100000;
+            gunAnimation.pendingReloadBudget = false;
+            updateHud();
+          }
+
+          if (gunStatus) gunStatus.textContent = "READY";
+          return;
+        }
+
+        setGunFrame(gunAnimation.frame);
+        return;
+      }
+
+      if (gunAnimation.state === "shooting") {
+        if (gunAnimation.frame > gunAnimation.shootEnd) {
+          gunAnimation.state = "idle";
+          setGunFrame(gunAnimation.shootStart);
+          if (gunStatus) gunStatus.textContent = "READY";
+          return;
+        }
+
+        setGunFrame(gunAnimation.frame);
+      }
+    }
+
+
+
+
+    function getGunMuzzleScreenPosition() {
+      /*
+        Punto calibrado por el usuario sobre un frame del arma disparando.
+        Frame de referencia: 1654 x 929 px
+        Punto rojo aproximado (centro): x=895.5, y=532.0
+
+        IMPORTANTE:
+        - El frame del arma NO es toda la pantalla.
+        - El arma se dibuja dentro de <img id="gunSprite"> con object-fit: contain
+          y object-position: right bottom.
+        - Por eso primero calculamos el rectángulo REAL donde se ve el frame dentro
+          del <img>, y luego convertimos el punto rojo a coordenadas de pantalla.
+      */
+      const fallback = {
+        x: window.innerWidth * 0.82,
+        y: window.innerHeight - 160
+      };
+
+      if (!gunSprite) return fallback;
+
+      const rect = gunSprite.getBoundingClientRect();
+      const naturalW = gunSprite.naturalWidth || 1654;
+      const naturalH = gunSprite.naturalHeight || 929;
+
+      if (!rect.width || !rect.height || !naturalW || !naturalH) return fallback;
+
+      const scale = Math.min(rect.width / naturalW, rect.height / naturalH);
+      const renderW = naturalW * scale;
+      const renderH = naturalH * scale;
+
+      // object-position: right bottom
+      const offsetX = rect.width - renderW;
+      const offsetY = rect.height - renderH;
+
+      const muzzleX = 895.5;
+      const muzzleY = 532.0;
+
+      return {
+        x: rect.left + offsetX + (muzzleX / naturalW) * renderW,
+        y: rect.top + offsetY + (muzzleY / naturalH) * renderH
+      };
+    }
+
+
+
+
+    function getCrosshairScreenPosition() {
+      const crosshair = document.getElementById("crosshair");
+
+      if (!crosshair) {
+        return {
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2 - 58
+        };
+      }
+
+      const rect = crosshair.getBoundingClientRect();
+
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+    }
+
+
+    function getEnemyScreenPosition() {
+      const enemy = getNearestActiveEnemy();
+
+      if (!enemy || !enemy.sprite || !camera) {
+        return { x: window.innerWidth / 2, y: window.innerHeight / 2 - 60 };
+      }
+
+      const position = enemy.sprite.position.clone();
+      position.y += 0.65;
+      position.project(camera);
+
+      const x = (position.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-position.y * 0.5 + 0.5) * window.innerHeight;
+
+      if (!Number.isFinite(x) || !Number.isFinite(y) || position.z > 1) {
+        return { x: window.innerWidth / 2, y: window.innerHeight / 2 - 58 };
+      }
+
+      return { x, y };
+    }
+
+
+
+    function getEnemyHitAreaScreen() {
+      const areas = [];
+
+      enemies.forEach(function (enemy) {
+        if (enemy.neutralized || !enemy.sprite || !camera) return;
+
+        const center = enemy.sprite.position.clone();
+        center.y += 0.55;
+        center.project(camera);
+
+        if (center.z > 1) return;
+
+        const x = (center.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-center.y * 0.5 + 0.5) * window.innerHeight;
+
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+        const distance = camera.position.distanceTo(enemy.sprite.position);
+        const radius = Math.max(36, Math.min(115, 460 / Math.max(distance, 1)));
+
+        areas.push({ enemy: enemy, x: x, y: y, radius: radius });
+      });
+
+      return areas;
+    }
+
+
+    function registerBillImpact(screenX, screenY) {
+      const hitAreas = getEnemyHitAreaScreen();
+      if (!hitAreas || hitAreas.length === 0) return;
+
+      let best = null;
+      let bestDistance = Infinity;
+
+      hitAreas.forEach(function (area) {
+        const distance = Math.hypot(screenX - area.x, screenY - area.y);
+
+        if (distance <= area.radius && distance < bestDistance) {
+          best = area;
+          bestDistance = distance;
+        }
+      });
+
+      if (!best || !best.enemy || best.enemy.neutralized) return;
+
+      best.enemy.hits += 1;
+      updateEnemyStatus(best.enemy);
+
+      if (best.enemy.hits >= best.enemy.requiredHits) {
+        neutralizeEnemy(best.enemy);
+      }
+    }
+
+
+    function updateEnemyStatus(enemy) {
+      if (!enemyStatus) return;
+
+      if (enemy && enemy.neutralized) {
+        enemyStatus.style.display = "block";
+        enemyStatus.textContent = "ENEMIGO SATISFECHO";
+        return;
+      }
+
+      const active = enemy || getNearestActiveEnemy();
+
+      if (!active) {
+        enemyStatus.style.display = "none";
+        return;
+      }
+
+      enemyStatus.style.display = "block";
+      enemyStatus.textContent = "BILLETES: " + active.hits + " / " + active.requiredHits;
+
+      clearTimeout(updateEnemyStatus._timer);
+      updateEnemyStatus._timer = setTimeout(function () {
+        if (enemyStatus) {
+          enemyStatus.style.display = "none";
+        }
+      }, 1400);
+    }
+
+
+    function neutralizeEnemy(enemy) {
+      if (!enemy) return;
+
+      enemy.neutralized = true;
+      enemy.touchCooldown = 999;
+
+      const fixedTexture = enemyAnimation.textures[enemyFixedFrameIndex];
+      if (enemy.sprite && fixedTexture) {
+        enemy.sprite.material.map = fixedTexture;
+        enemy.sprite.material.needsUpdate = true;
+      }
+
+      updateEnemyStatus(enemy);
+    }
+
+
+
+    function spawnBillShot() {
+      // Los billetes salen desde la boquilla hacia la mira, no hacia un enemigo específico.
+      const target = getCrosshairScreenPosition();
+
+      // Punto de salida calculado desde la boquilla real del arma.
+      const muzzle = getGunMuzzleScreenPosition();
+      const startX = muzzle.x;
+      const startY = muzzle.y;
+
+      for (let i = 0; i < 3; i++) {
+        const bill = document.createElement("div");
+        bill.className = "screenBill";
+        bill.textContent = "$";
+
+        const jitterStartX = startX + Math.random() * 18 - 9;
+        const jitterStartY = startY + Math.random() * 14 - 7;
+
+        // La mira es el destino principal; solo agregamos una ligera dispersión.
+        const jitterTargetX = target.x + Math.random() * 34 - 17;
+        const jitterTargetY = target.y + Math.random() * 34 - 17;
+
+        bill.style.left = jitterStartX + "px";
+        bill.style.top = jitterStartY + "px";
+        bill.style.transform = "translate(-50%, -50%) rotate(" + (Math.random() * 26 - 13) + "deg) scale(1)";
+
+        document.body.appendChild(bill);
+
+        const dx = jitterTargetX - jitterStartX;
+        const dy = jitterTargetY - jitterStartY;
+        const duration = 360 + i * 30;
+
+        bill.animate(
+          [
+            {
+              transform: "translate(-50%, -50%) rotate(" + (Math.random() * 18 - 9) + "deg) scale(1)",
+              opacity: 1
+            },
+            {
+              transform: "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px)) rotate(" + (Math.random() * 120 - 60) + "deg) scale(0.78)",
+              opacity: 0
+            }
+          ],
+          {
+            duration: duration,
+            easing: "cubic-bezier(.15,.8,.25,1)",
+            fill: "forwards"
+          }
+        );
+
+        setTimeout(function () {
+          // El impacto se calcula donde cae el billete: cerca de la mira.
+          registerBillImpact(jitterTargetX, jitterTargetY);
+          bill.remove();
+        }, duration + 40);
+      }
+    }
+
+
+
+
+    function spawnBillBurst() {
+      /*
+        Metralleta de billetes:
+        varias mini-ráfagas consecutivas durante la animación de disparo.
+      */
+      const bursts = 7;
+      const delayBetweenBursts = 70;
+
+      for (let i = 0; i < bursts; i++) {
+        setTimeout(function () {
+          spawnBillShot();
+        }, i * delayBetweenBursts);
+      }
+    }
+
+
+    function fireMoneyGun() {
+      if (!startGunShoot()) return;
+
+      hud.budget = Math.max(0, hud.budget - 5000);
+      updateHud();
+      spawnBillBurst();
+    }
+
+
+
+    function reloadMoneyGun() {
+      startGunReload();
+    }
+
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(Math.floor(window.innerWidth * RENDER_SCALE), Math.floor(window.innerHeight * RENDER_SCALE), false);
+      renderer.domElement.style.width = "100vw";
+      renderer.domElement.style.height = "100vh";
+    }
+
+    function onKeyDown(event) {
+      keys[event.code] = true;
+
+      if (event.code === "Enter" && overlay.style.display !== "none") enterOffice();
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        jump();
+      }
+
+      if (event.code === "KeyF") fireMoneyGun();
+      if (event.code === "KeyR") reloadMoneyGun();
+
+      if (event.code === "KeyC") {
+        hud.coffee = Math.max(0, hud.coffee - 1);
+        updateHud();
+      }
+
+      if (event.code === "KeyB") {
+        hud.budget = Math.max(0, hud.budget - 5000);
+        updateHud();
+      }
+
+      if (event.code === "KeyN") {
+        hud.coffee = 10;
+        hud.budget = 100000;
+        updateHud();
+      }
+    }
+
+    function onKeyUp(event) {
+      keys[event.code] = false;
+    }
+
+    function onMouseMove(event) {
+      if (document.pointerLockElement !== renderer.domElement) return;
+
+      yaw -= event.movementX * 0.0024;
+      pitch -= event.movementY * 0.0024;
+
+      const limit = Math.PI / 2 - 0.05;
+      pitch = Math.max(-limit, Math.min(limit, pitch));
+    }
+
+    function jump() {
+      if (!player.onGround) return;
+      player.velocityY = 6.5;
+      player.onGround = false;
+    }
+
+    function updatePlayer(delta) {
+      let forward = 0;
+      let right = 0;
+
+      if (keys["KeyW"]) forward += 1;
+      if (keys["KeyS"]) forward -= 1;
+      if (keys["KeyD"]) right += 1;
+      if (keys["KeyA"]) right -= 1;
+
+      const length = Math.hypot(forward, right) || 1;
+      forward /= length;
+      right /= length;
+
+      const speed = keys["ShiftLeft"] || keys["ShiftRight"] ? 8.5 : 5.2;
+
+      const forwardX = -Math.sin(yaw);
+      const forwardZ = -Math.cos(yaw);
+      const rightX = Math.cos(yaw);
+      const rightZ = -Math.sin(yaw);
+
+      const moveX = (forwardX * forward + rightX * right) * speed * delta;
+      const moveZ = (forwardZ * forward + rightZ * right) * speed * delta;
+
+      movePlayerWithCollision(moveX, moveZ);
+
+      player.velocityY -= 18 * delta;
+      player.y += player.velocityY * delta;
+
+      if (player.y <= player.height) {
+        player.y = player.height;
+        player.velocityY = 0;
+        player.onGround = true;
+      }
+
+      camera.position.set(player.x, player.y, player.z);
+      camera.rotation.order = "YXZ";
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+      camera.rotation.z = 0;
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = Math.min(clock.getDelta(), 0.05);
+      updatePlayer(delta);
+      updateCoffeeThermos(delta);
+      updateStaticEnemy(delta);
+      updateEnemyMovement(delta);
+      updateEnemyContact(delta);
+      updateEnemySpawner(delta);
+      updateGunAnimation(delta);
+      updateFaceAnimation(delta);
+      renderer.render(scene, camera);
+    }
+  </script>
+</body>
+</html>

@@ -643,6 +643,16 @@
       display: none;
     }
 
+  
+    #gunCanvas {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: contain !important;
+      object-position: right bottom !important;
+      image-rendering: pixelated !important;
+      display: block !important;
+    }
+
   </style>
 </head>
 <body>
@@ -707,7 +717,7 @@
   </div>
 
   <div id="moneyGun">
-    <img id="gunSprite" src="assets/gun_frames/gun_078.webp" alt="Budget gun" />
+    <canvas id="gunCanvas" width="1654" height="929" aria-label="Budget gun"></canvas>
   </div>
   <div id="gunStatus">READY</div>
 
@@ -750,6 +760,8 @@
     const faceImage = document.getElementById("faceImage");
     const moneyGun = document.getElementById("moneyGun");
     const gunSprite = document.getElementById("gunSprite");
+    const gunCanvas = document.getElementById("gunCanvas");
+    const gunCtx = gunCanvas ? gunCanvas.getContext("2d") : null;
     const gunStatus = document.getElementById("gunStatus");
     const coffeeControl = document.getElementById("coffeeControl");
     const budgetControl = document.getElementById("budgetControl");
@@ -854,7 +866,8 @@
       frames: [],
       loadedCount: 0,
       totalFrames: 136,
-      ready: false
+      ready: false,
+      lastDrawnFrame: -1
     };
 
     initHud();
@@ -1814,7 +1827,10 @@
 
 
     function preloadGunFrames() {
-      if (!gunSprite) return;
+      if (!gunCanvas && !gunSprite) {
+        console.warn("No existe gunCanvas ni gunSprite. No se puede cargar el arma.");
+        return;
+      }
 
       gunAnimation.state = "loading";
       gunAnimation.ready = false;
@@ -1832,18 +1848,19 @@
           gunAnimation.loadedCount += 1;
 
           const percent = Math.round((gunAnimation.loadedCount / gunAnimation.totalFrames) * 100);
+
           if (gunStatus && gunAnimation.state === "loading") {
             gunStatus.textContent = "LOADING GUN " + percent + "%";
           }
 
           if (i === gunAnimation.shootStart) {
-            gunSprite.src = img.src;
+            drawGunFrame(gunAnimation.shootStart);
           }
 
           if (gunAnimation.loadedCount >= gunAnimation.totalFrames) {
             gunAnimation.ready = true;
             gunAnimation.state = "idle";
-            setGunFrame(gunAnimation.shootStart);
+            drawGunFrame(gunAnimation.shootStart);
             if (gunStatus) gunStatus.textContent = "READY";
           }
         };
@@ -1852,10 +1869,16 @@
           console.warn("No se pudo cargar frame del arma:", src);
           gunAnimation.loadedCount += 1;
 
+          const percent = Math.round((gunAnimation.loadedCount / gunAnimation.totalFrames) * 100);
+
+          if (gunStatus && gunAnimation.state === "loading") {
+            gunStatus.textContent = "LOADING GUN " + percent + "%";
+          }
+
           if (gunAnimation.loadedCount >= gunAnimation.totalFrames) {
             gunAnimation.ready = true;
             gunAnimation.state = "idle";
-            setGunFrame(gunAnimation.shootStart);
+            drawGunFrame(gunAnimation.shootStart);
             if (gunStatus) gunStatus.textContent = "READY";
           }
         };
@@ -1865,23 +1888,52 @@
     }
 
 
+
     function gunFramePath(frameNumber) {
       return "assets/gun_frames/gun_" + String(frameNumber).padStart(3, "0") + ".webp";
     }
 
+
+    function drawGunFrame(frameNumber) {
+      const cachedFrame = gunAnimation.frames && gunAnimation.frames[frameNumber];
+
+      if (!cachedFrame) return false;
+
+      if (gunCanvas && gunCtx) {
+        const w = cachedFrame.naturalWidth || cachedFrame.width || 1654;
+        const h = cachedFrame.naturalHeight || cachedFrame.height || 929;
+
+        if (gunCanvas.width !== w) gunCanvas.width = w;
+        if (gunCanvas.height !== h) gunCanvas.height = h;
+
+        gunCtx.clearRect(0, 0, gunCanvas.width, gunCanvas.height);
+        gunCtx.drawImage(cachedFrame, 0, 0, gunCanvas.width, gunCanvas.height);
+        gunAnimation.lastDrawnFrame = frameNumber;
+        return true;
+      }
+
+      if (gunSprite && cachedFrame.src) {
+        gunSprite.src = cachedFrame.src;
+        gunAnimation.lastDrawnFrame = frameNumber;
+        return true;
+      }
+
+      return false;
+    }
+
+
+
     function setGunFrame(frameNumber) {
       gunAnimation.frame = frameNumber;
 
-      if (!gunSprite) return;
+      if (drawGunFrame(frameNumber)) return;
 
-      const cachedFrame = gunAnimation.frames && gunAnimation.frames[frameNumber];
-
-      if (cachedFrame && cachedFrame.src) {
-        gunSprite.src = cachedFrame.src;
-      } else {
+      if (gunSprite) {
         gunSprite.src = gunFramePath(frameNumber);
       }
     }
+
+
 
 
     function startGunReload() {
@@ -1973,50 +2025,21 @@
 
 
     function getGunMuzzleScreenPosition() {
-      /*
-        Punto calibrado por el usuario sobre un frame del arma disparando.
-        Frame de referencia: 1654 x 929 px
-        Punto rojo aproximado (centro): x=895.5, y=532.0
+      // Punto visual estable para la boquilla usando el contenedor del arma.
+      if (!moneyGun) {
+        return {
+          x: window.innerWidth * 0.82,
+          y: window.innerHeight - 160
+        };
+      }
 
-        IMPORTANTE:
-        - El frame del arma NO es toda la pantalla.
-        - El arma se dibuja dentro de <img id="gunSprite"> con object-fit: contain
-          y object-position: right bottom.
-        - Por eso primero calculamos el rectángulo REAL donde se ve el frame dentro
-          del <img>, y luego convertimos el punto rojo a coordenadas de pantalla.
-      */
-      const fallback = {
-        x: window.innerWidth * 0.82,
-        y: window.innerHeight - 160
-      };
-
-      if (!gunSprite) return fallback;
-
-      const rect = gunSprite.getBoundingClientRect();
-      const naturalW = gunSprite.naturalWidth || 1654;
-      const naturalH = gunSprite.naturalHeight || 929;
-
-      if (!rect.width || !rect.height || !naturalW || !naturalH) return fallback;
-
-      const scale = Math.min(rect.width / naturalW, rect.height / naturalH);
-      const renderW = naturalW * scale;
-      const renderH = naturalH * scale;
-
-      // object-position: right bottom
-      const offsetX = rect.width - renderW;
-      const offsetY = rect.height - renderH;
-
-      const muzzleX = 895.5;
-      const muzzleY = 532.0;
+      const rect = moneyGun.getBoundingClientRect();
 
       return {
-        x: rect.left + offsetX + (muzzleX / naturalW) * renderW,
-        y: rect.top + offsetY + (muzzleY / naturalH) * renderH
+        x: rect.left + rect.width * 0.52,
+        y: rect.top + rect.height * 0.58
       };
     }
-
-
-
 
     function getCrosshairScreenPosition() {
       const crosshair = document.getElementById("crosshair");

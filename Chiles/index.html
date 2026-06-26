@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Salsas Picantes | My Tierra Picante</title>
+  <meta name="description" content="Salsas picantes, chiles, condimentos y productos con mucho sabor para los amantes del picante." />
+
+  <style>
+    :root {
+      --rojo-fuerte: #db0e0e;
+      --rojo-medio: #db3434;
+      --rojo-suave: #eb7575;
+      --verde-fuerte: #37f360;
+      --verde-suave: #7cf797;
+      --fondo: #300808;
+      --fondo-oscuro: #160303;
+      --texto: #fff7f2;
+      --texto-suave: #ffd8d0;
+      --sombra: rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(219, 14, 14, 0.35), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(55, 243, 96, 0.16), transparent 28%),
+        linear-gradient(135deg, var(--fondo), var(--fondo-oscuro));
+      color: var(--texto);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .site-header {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+      z-index: 5;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--rojo-fuerte), var(--rojo-suave));
+      box-shadow: 0 12px 30px rgba(219, 14, 14, 0.35);
+      font-size: 24px;
+    }
+
+    .brand-name {
+      font-size: 1.15rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      color: var(--texto-suave);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .nav a:hover {
+      color: var(--verde-suave);
+    }
+
+    .hero {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 56px 0 80px;
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      align-items: center;
+      gap: 44px;
+      min-height: calc(100vh - 92px);
+      position: relative;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 3;
+    }
+
+    .tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid rgba(124, 247, 151, 0.45);
+      border-radius: 999px;
+      color: var(--verde-suave);
+      background: rgba(55, 243, 96, 0.09);
+      font-size: 0.92rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(2.7rem, 7vw, 6rem);
+      line-height: 0.92;
+      letter-spacing: -3px;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+    }
+
+    h1 span {
+      display: block;
+      color: var(--verde-suave);
+      text-shadow: 0 0 22px rgba(55, 243, 96, 0.28);
+    }
+
+    .hero-text {
+      max-width: 600px;
+      color: var(--texto-suave);
+      font-size: 1.12rem;
+      line-height: 1.7;
+      margin-bottom: 30px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 34px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 22px;
+      border-radius: 999px;
+      font-weight: 800;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, var(--rojo-fuerte), var(--rojo-suave));
+      color: white;
+      box-shadow: 0 18px 34px rgba(219, 14, 14, 0.32);
+    }
+
+    .button-secondary {
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.07);
+      color: white;
+    }
+
+    .button-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .mini-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      max-width: 650px;
+    }
+
+    .mini-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 18px 36px var(--sombra);
+      backdrop-filter: blur(10px);
+    }
+
+    .mini-card strong {
+      display: block;
+      color: white;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+
+    .mini-card p {
+      color: var(--texto-suave);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 560px;
+      display: grid;
+      place-items: center;
+      isolation: isolate;
+    }
+
+    .product-card {
+      position: relative;
+      z-index: 3;
+      width: min(360px, 88vw);
+      min-height: 500px;
+      border-radius: 36px;
+      padding: 26px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.04)),
+        rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(14px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .product-card::before {
+      content: "";
+      position: absolute;
+      inset: -70px -80px auto auto;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: rgba(55, 243, 96, 0.18);
+      filter: blur(8px);
+    }
+
+    .hot-label {
+      align-self: flex-start;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(219, 14, 14, 0.28);
+      border: 1px solid rgba(235, 117, 117, 0.45);
+      font-size: 0.85rem;
+      font-weight: 900;
+      color: white;
+    }
+
+    .bottle {
+      width: 150px;
+      height: 300px;
+      margin: 20px auto 8px;
+      border-radius: 44px 44px 28px 28px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.25), transparent 24%, rgba(0,0,0,0.14) 80%),
+        linear-gradient(180deg, #ff5b35, var(--rojo-fuerte) 55%, #8f0707);
+      position: relative;
+      box-shadow: 0 26px 60px rgba(219, 14, 14, 0.4);
+      transform: rotate(-4deg);
+    }
+
+    .bottle::before {
+      content: "";
+      position: absolute;
+      top: -72px;
+      left: 42px;
+      width: 66px;
+      height: 88px;
+      border-radius: 20px 20px 8px 8px;
+      background: linear-gradient(180deg, var(--verde-suave), var(--verde-fuerte));
+      box-shadow: inset 10px 0 18px rgba(255,255,255,0.24);
+    }
+
+    .bottle::after {
+      content: "PICANTE";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 78px;
+      padding: 18px 6px;
+      border-radius: 18px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: 950;
+      letter-spacing: 1.5px;
+      background: rgba(255, 247, 242, 0.92);
+      color: var(--rojo-fuerte);
+      box-shadow: inset 0 0 0 3px rgba(219,14,14,0.15);
+    }
+
+    .product-info h2 {
+      font-size: 1.65rem;
+      margin-bottom: 8px;
+    }
+
+    .product-info p {
+      color: var(--texto-suave);
+      line-height: 1.55;
+    }
+
+    .spice-level {
+      margin-top: 16px;
+      display: flex;
+      gap: 6px;
+      font-size: 1.45rem;
+    }
+
+    /* Animación de fuego convertida a CSS normal */
+    .fire {
+      font-size: 24px;
+      filter: blur(0.02em);
+      -webkit-filter: blur(0.02em);
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12em;
+      height: 14em;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .particle {
+      animation: rise 1s ease-in infinite;
+      background-image: radial-gradient(rgb(255,80,0) 20%, rgba(255,80,0,0) 70%);
+      border-radius: 50%;
+      mix-blend-mode: screen;
+      opacity: 0;
+      position: absolute;
+      bottom: 0;
+      width: 5em;
+      height: 5em;
+    }
+
+    .particle:nth-of-type(1) { animation-delay: 0.12s; left: 0%; }
+    .particle:nth-of-type(2) { animation-delay: 0.54s; left: 2%; }
+    .particle:nth-of-type(3) { animation-delay: 0.25s; left: 4%; }
+    .particle:nth-of-type(4) { animation-delay: 0.81s; left: 6%; }
+    .particle:nth-of-type(5) { animation-delay: 0.43s; left: 8%; }
+    .particle:nth-of-type(6) { animation-delay: 0.67s; left: 10%; }
+    .particle:nth-of-type(7) { animation-delay: 0.18s; left: 12%; }
+    .particle:nth-of-type(8) { animation-delay: 0.93s; left: 14%; }
+    .particle:nth-of-type(9) { animation-delay: 0.36s; left: 16%; }
+    .particle:nth-of-type(10) { animation-delay: 0.72s; left: 18%; }
+    .particle:nth-of-type(11) { animation-delay: 0.09s; left: 20%; }
+    .particle:nth-of-type(12) { animation-delay: 0.48s; left: 22%; }
+    .particle:nth-of-type(13) { animation-delay: 0.88s; left: 24%; }
+    .particle:nth-of-type(14) { animation-delay: 0.21s; left: 26%; }
+    .particle:nth-of-type(15) { animation-delay: 0.61s; left: 28%; }
+    .particle:nth-of-type(16) { animation-delay: 0.33s; left: 30%; }
+    .particle:nth-of-type(17) { animation-delay: 0.76s; left: 32%; }
+    .particle:nth-of-type(18) { animation-delay: 0.15s; left: 34%; }
+    .particle:nth-of-type(19) { animation-delay: 0.57s; left: 36%; }
+    .particle:nth-of-type(20) { animation-delay: 0.97s; left: 38%; }
+    .particle:nth-of-type(21) { animation-delay: 0.29s; left: 40%; }
+    .particle:nth-of-type(22) { animation-delay: 0.69s; left: 42%; }
+    .particle:nth-of-type(23) { animation-delay: 0.04s; left: 44%; }
+    .particle:nth-of-type(24) { animation-delay: 0.45s; left: 46%; }
+    .particle:nth-of-type(25) { animation-delay: 0.84s; left: 48%; }
+    .particle:nth-of-type(26) { animation-delay: 0.19s; left: 50%; }
+    .particle:nth-of-type(27) { animation-delay: 0.52s; left: 52%; }
+    .particle:nth-of-type(28) { animation-delay: 0.91s; left: 54%; }
+    .particle:nth-of-type(29) { animation-delay: 0.31s; left: 56%; }
+    .particle:nth-of-type(30) { animation-delay: 0.64s; left: 58%; }
+    .particle:nth-of-type(31) { animation-delay: 0.11s; left: 60%; }
+    .particle:nth-of-type(32) { animation-delay: 0.5s; left: 62%; }
+    .particle:nth-of-type(33) { animation-delay: 0.86s; left: 64%; }
+    .particle:nth-of-type(34) { animation-delay: 0.23s; left: 66%; }
+    .particle:nth-of-type(35) { animation-delay: 0.59s; left: 68%; }
+    .particle:nth-of-type(36) { animation-delay: 0.99s; left: 70%; }
+    .particle:nth-of-type(37) { animation-delay: 0.27s; left: 72%; }
+    .particle:nth-of-type(38) { animation-delay: 0.74s; left: 74%; }
+    .particle:nth-of-type(39) { animation-delay: 0.07s; left: 76%; }
+    .particle:nth-of-type(40) { animation-delay: 0.4s; left: 78%; }
+    .particle:nth-of-type(41) { animation-delay: 0.79s; left: 80%; }
+    .particle:nth-of-type(42) { animation-delay: 0.17s; left: 82%; }
+    .particle:nth-of-type(43) { animation-delay: 0.56s; left: 84%; }
+    .particle:nth-of-type(44) { animation-delay: 0.9s; left: 86%; }
+    .particle:nth-of-type(45) { animation-delay: 0.34s; left: 88%; }
+    .particle:nth-of-type(46) { animation-delay: 0.7s; left: 90%; }
+    .particle:nth-of-type(47) { animation-delay: 0.13s; left: 92%; }
+    .particle:nth-of-type(48) { animation-delay: 0.46s; left: 94%; }
+    .particle:nth-of-type(49) { animation-delay: 0.83s; left: 96%; }
+    .particle:nth-of-type(50) { animation-delay: 0.38s; left: 98%; }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(0) scale(1);
+      }
+
+      25% {
+        opacity: 1;
+      }
+
+      to {
+        opacity: 0;
+        transform: translateY(-10em) scale(0);
+      }
+    }
+
+    .featured-section {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto 72px;
+      padding: 34px;
+      border-radius: 32px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 26px 60px rgba(0,0,0,0.26);
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3vw, 2.7rem);
+      margin-bottom: 12px;
+    }
+
+    .section-description {
+      color: var(--texto-suave);
+      line-height: 1.65;
+      margin-bottom: 24px;
+      max-width: 760px;
+    }
+
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .category-card {
+      min-height: 190px;
+      border-radius: 24px;
+      padding: 20px;
+      background: linear-gradient(180deg, rgba(219, 52, 52, 0.25), rgba(255,255,255,0.06));
+      border: 1px solid rgba(255,255,255,0.13);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .category-card .icon {
+      font-size: 2.4rem;
+    }
+
+    .category-card h3 {
+      font-size: 1.12rem;
+      margin-bottom: 8px;
+    }
+
+    .category-card p {
+      color: var(--texto-suave);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .whatsapp-floating {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 20;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--verde-fuerte), var(--verde-suave));
+      color: #06240c;
+      font-size: 1.8rem;
+      box-shadow: 0 18px 34px rgba(55,243,96,0.25);
+      font-weight: 900;
+    }
+
+    @media (max-width: 900px) {
+      .site-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .nav {
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 32px;
+      }
+
+      .hero-visual {
+        min-height: 520px;
+      }
+
+      .mini-cards,
+      .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .hero {
+        gap: 22px;
+      }
+
+      h1 {
+        letter-spacing: -1.5px;
+      }
+
+      .mini-cards,
+      .product-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .featured-section {
+        padding: 24px;
+      }
+
+      .product-card {
+        min-height: 470px;
+      }
+
+      .fire {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="Ir al inicio">
+      <span class="brand-icon">🌶️</span>
+      <span class="brand-name">My Tierra Picante</span>
+    </a>
+
+    <nav class="nav" aria-label="Menú principal">
+      <a href="productos.html">Productos</a>
+      <a href="#combos">acerca de nosotros</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+  </header>
+
+  <main id="inicio">
+    <section class="hero">
+      <div class="hero-content">
+        <div class="tagline">🔥 Salsas, chiles y sabor extremo</div>
+
+        <h1>
+          Picante que se siente.
+          <span>Sabor que se queda.</span>
+        </h1>
+
+        <p class="hero-text">
+          Encuentra salsas picantes, chiles, condimentos, snacks y combos para quienes disfrutan darle vida a cada comida. Tenemos opciones suaves, medias y extremas.
+        </p>
+
+        <div class="actions">
+          <a class="button button-primary" href="productos.html">Ver productos</a>
+          <a class="button button-secondary" href="https://wa.me/50600000000" target="_blank" rel="noopener">Pedir por WhatsApp</a>
+        </div>
+
+        <div class="mini-cards" aria-label="Beneficios del negocio">
+          <article class="mini-card">
+            <strong>🌶️ Variedad</strong>
+            <p>Salsas, chiles secos, condimentos y más productos picantes.</p>
+          </article>
+
+          <article class="mini-card">
+            <strong>🔥 Niveles</strong>
+            <p>Desde sabores suaves hasta picantes realmente intensos.</p>
+          </article>
+
+          <article class="mini-card">
+            <strong>🎁 Combos</strong>
+            <p>Paquetes ideales para probar, regalar o compartir.</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <div class="fire">
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+          <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+        </div>
+
+        <article class="product-card">
+          <span class="hot-label">Más vendido</span>
+
+          <div class="bottle"></div>
+
+          <div class="product-info">
+            <h2>Salsa Roja Extrema</h2>
+            <p>Perfecta para tacos, carnes, alitas, sopas y comidas con carácter.</p>
+            <div class="spice-level">🌶️🌶️🌶️🌶️</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="featured-section" id="productos">
+      <h2 class="section-title">Categorías principales</h2>
+      <p class="section-description">
+        Todos nuestros productos son pensados para satisfacer el paladar de nuestros clientes. 
+      </p>
+
+      <div class="product-grid">
+        <article class="category-card">
+          <span class="icon">🌶️</span>
+          <div>
+            <h3>Salsas picantes</h3>
+            <p>Habanero, jalapeño, chipotle, tabasco y mezclas especiales.</p>
+          </div>
+        </article>
+
+        <article class="category-card">
+          <span class="icon">🔥</span>
+          <div>
+            <h3>Chiles</h3>
+            <p>Chiles secos, frescos, molidos o preparados para cocinar.</p>
+          </div>
+        </article>
+
+        <article class="category-card" id="combos">
+          <span class="icon">🎁</span>
+          <div>
+            <h3>Combos</h3>
+            <p>Paquetes para probar varios niveles de picante o regalar.</p>
+          </div>
+        </article>
+
+        <article class="category-card" id="promos">
+          <span class="icon">⭐</span>
+          <div>
+            <h3>Promociones</h3>
+            <p>Ofertas especiales, productos nuevos y descuentos por temporada.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="featured-section" id="contacto">
+    <h2 class="section-title">Haz tu pedido</h2>
+    <p class="section-description">
+      Escríbenos por WhatsApp para consultar disponibilidad, precios, entregas y recomendaciones según tu nivel de picante favorito.
+    </p>
+    <a class="button button-primary" href="https://wa.me/50600000000" target="_blank" rel="noopener">Contactar por WhatsApp</a>
+  </footer>
+
+  <a class="whatsapp-floating" href="https://wa.me/50600000000" target="_blank" rel="noopener" aria-label="Contactar por WhatsApp">✆</a>
+</body>
+</html>

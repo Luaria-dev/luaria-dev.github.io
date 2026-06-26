@@ -1,0 +1,6 @@
+nombre,precio,picor,imagen,descripcion,categoria,promocion,descuento,disponible
+Salsa Habanero Roja,2500,4,salsa-habanero.png,Salsa intensa ideal para tacos,Salsas,1,0.1,1
+Salsa Tipo Tabasco,2200,3,salsa-tabasco.png,Salsa acida y picante para comidas rapidas y sopas.,Salsas,0,,1
+Chile Seco Mixto,1800,2,chile-seco.png,Mezcla de chiles secos para cocinar o preparar salsas.,Chiles,0,,1
+Combo Picante Extremo,6500,5,combo-picante.png,Paquete con varias salsas para amantes del picante fuerte.,Combos,1,0.3,1
+Sal con Chile,1200,1,sal-chile.png,Condimento suave para frutas,Condimento,0,,1

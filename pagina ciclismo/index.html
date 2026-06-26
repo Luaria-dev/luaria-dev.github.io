@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ruta Extrema Bike Challenge 2026</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <header class="hero">
+    <nav class="navbar">
+      <h2>Bike Challenge</h2>
+      <ul>
+        <li><a href="#evento">Evento</a></li>
+        <li><a href="#rutas">Rutas</a></li>
+        <li><a href="#inscripcion">Inscripción</a></li>
+        <li><a href="#mapa">Mapa</a></li>
+      </ul>
+    </nav>
+
+    <section class="hero-content">
+      <p class="tag">Carrera recreativa y competitiva</p>
+      <h1>Ruta Extrema Bike Challenge 2026</h1>
+      <p>Domingo 15 de agosto | San José, Costa Rica</p>
+
+      <div class="hero-buttons">
+        <a href="#inscripcion" class="btn primary">Inscribirme</a>
+        <a href="#rutas" class="btn secondary">Ver rutas</a>
+      </div>
+
+      <div class="countdown">
+        <span id="days">00</span>
+        <small>días para la carrera</small>
+      </div>
+    </section>
+  </header>
+
+  <main>
+    <section id="evento" class="section">
+      <h2>Información del evento</h2>
+      <div class="cards">
+        <article class="card">
+          <h3>Fecha</h3>
+          <p>Domingo 15 de agosto, 2026</p>
+        </article>
+
+        <article class="card">
+          <h3>Salida</h3>
+          <p>6:00 a.m. desde Parque La Sabana</p>
+        </article>
+
+        <article class="card">
+          <h3>Modalidad</h3>
+          <p>Ruta recreativa y competitiva</p>
+        </article>
+
+        <article class="card">
+          <h3>Incluye</h3>
+          <p>Medalla, hidratación, número y asistencia en ruta</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="rutas" class="section dark">
+      <h2>Rutas disponibles</h2>
+
+      <div class="route-options">
+        <button class="route-btn active" data-route="25">25 km</button>
+        <button class="route-btn" data-route="50">50 km</button>
+        <button class="route-btn" data-route="100">100 km</button>
+      </div>
+
+      <div class="route-info">
+        <h3 id="route-title">Ruta 25 km</h3>
+        <p id="route-description">
+          Ideal para principiantes o ciclistas recreativos. Recorrido urbano con baja dificultad.
+        </p>
+        <ul>
+          <li><strong>Dificultad:</strong> <span id="difficulty">Baja</span></li>
+          <li><strong>Puntos de hidratación:</strong> <span id="water">2</span></li>
+          <li><strong>Elevación aproximada:</strong> <span id="elevation">250 m</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="inscripcion" class="section">
+      <h2>Inscripción</h2>
+
+      <div class="pricing">
+        <div>
+          <h3>Paquete general</h3>
+          <p class="price">₡15,000</p>
+          <p>Incluye participación, número, hidratación, asistencia y medalla.</p>
+        </div>
+
+        <form class="form">
+          <input type="text" placeholder="Nombre completo" required />
+          <input type="email" placeholder="Correo electrónico" required />
+          <select required>
+            <option value="">Seleccione una ruta</option>
+            <option>25 km</option>
+            <option>50 km</option>
+            <option>100 km</option>
+          </select>
+          <button type="submit" class="btn primary">Enviar inscripción</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="section dark">
+      <h2>Agenda del día</h2>
+
+      <div class="timeline">
+        <div><strong>5:00 a.m.</strong> Apertura del evento</div>
+        <div><strong>5:30 a.m.</strong> Calentamiento</div>
+        <div><strong>6:00 a.m.</strong> Salida oficial</div>
+        <div><strong>10:30 a.m.</strong> Premiación</div>
+      </div>
+    </section>
+
+    <section id="mapa" class="section">
+      <h2>Ruta en Google Maps</h2>
+      <p class="section-text">
+        Aquí puedes mostrar la ruta directamente dentro de la página.
+      </p>
+
+      <div class="map-container">
+        <iframe
+          src="https://www.google.com/maps/embed/v1/directions?key=TU_API_KEY&origin=Parque%20La%20Sabana,%20San%20Jose,%20Costa%20Rica&destination=Escazu,%20San%20Jose,%20Costa%20Rica&mode=bicycling"
+          allowfullscreen
+          loading="lazy">
+        </iframe>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Ruta Extrema Bike Challenge 2026 | Contacto: info@bikechallenge.com</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

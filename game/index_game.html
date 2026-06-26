@@ -77,7 +77,7 @@
     #crosshair {
       position: fixed;
       left: 50%;
-      top: calc(50% - 58px);
+      top: 50%;
       width: 18px;
       height: 18px;
       transform: translate(-50%, -50%);
@@ -105,6 +105,19 @@
       width: 18px;
       height: 2px;
     }
+
+    #damageVision {
+      position: fixed;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: rgba(85, 8, 4, 0);
+      box-shadow: inset 0 0 0 rgba(100, 0, 0, 0);
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+      transition: background 140ms ease-out, box-shadow 140ms ease-out, backdrop-filter 140ms ease-out;
+    }
+
 
     #doomBar {
       position: fixed;
@@ -596,7 +609,7 @@
 
     .screenBill {
       position: fixed;
-      z-index: 10;
+      z-index: 6;
       width: 74px;
       height: 34px;
       pointer-events: none;
@@ -623,6 +636,7 @@
         right: -49vw !important;
         bottom: -10px !important;
       }
+
     }
 
   
@@ -682,6 +696,7 @@
   </div>
 
   <div id="crosshair"></div>
+  <div id="damageVision"></div>
   <div id="error"></div>
   <div id="enemyStatus"></div>
 
@@ -759,6 +774,7 @@
     const facePlaceholder = document.getElementById("facePlaceholder");
     const faceImage = document.getElementById("faceImage");
     const moneyGun = document.getElementById("moneyGun");
+    const damageVision = document.getElementById("damageVision");
     const gunSprite = document.getElementById("gunSprite");
     const gunCanvas = document.getElementById("gunCanvas");
     const gunCtx = gunCanvas ? gunCanvas.getContext("2d") : null;
@@ -791,6 +807,16 @@
       height: 1.7,
       velocityY: 0,
       onGround: true
+    };
+
+    const cameraEffects = {
+      walkTime: 0,
+      lateralOffset: 0,
+      verticalOffset: 0,
+      roll: 0,
+      recoilTime: 0,
+      recoilDuration: 0.16,
+      recoilStrength: 0
     };
 
     const hud = {
@@ -853,11 +879,22 @@
       frameTime: 0.16
     };
 
+    const drinkingAnimation = {
+      active: false,
+      frame: 0,
+      timer: 0,
+      frameTime: 0.075,
+      totalFrames: 11,
+      frames: []
+    };
+
     const gunAnimation = {
       state: "loading",
       frame: 78,
       timer: 0,
       frameTime: 0.033,
+      shootFrameTime: 0.015,
+      reloadFrameTime: 0.033,
       reloadStart: 0,
       reloadEnd: 77,
       shootStart: 78,
@@ -868,6 +905,15 @@
       totalFrames: 136,
       ready: false,
       lastDrawnFrame: -1
+    };
+
+    const billBurstSettings = {
+      bursts: 7,
+      delayBetweenBursts: 70,
+      billDuration: 360,
+      billDurationStep: 30,
+      impactPadding: 40,
+      trajectoryRotationDegrees: 25
     };
 
     initHud();
@@ -928,6 +974,7 @@
 
     function updateFaceAnimation(delta) {
       if (!faceImage) return;
+      if (drinkingAnimation.active) return;
 
       setFaceStateFromCoffee();
 
@@ -1002,6 +1049,31 @@
       });
 
       updateFaceByCoffee();
+      updateDamageVision();
+    }
+
+    function updateDamageVision() {
+      if (!damageVision) return;
+
+      const lostHealth = 1 - hud.coffee / hud.maxCoffee;
+      const blur = lostHealth * 3.6;
+      const tint = lostHealth * 0.18;
+      const vignette = lostHealth * 0.52;
+
+      damageVision.style.backdropFilter = "blur(" + blur.toFixed(2) + "px)";
+      damageVision.style.webkitBackdropFilter = "blur(" + blur.toFixed(2) + "px)";
+      damageVision.style.background = "rgba(85, 8, 4, " + tint.toFixed(3) + ")";
+      damageVision.style.boxShadow = "inset 0 0 " + (42 + lostHealth * 90).toFixed(0) + "px rgba(100, 0, 0, " + vignette.toFixed(3) + ")";
+    }
+
+    function loseCoffee(amount) {
+      const previousCoffee = hud.coffee;
+      hud.coffee = Math.max(0, hud.coffee - amount);
+      updateHud();
+
+      if (hud.coffee < previousCoffee) {
+        triggerScreenShake(0.55);
+      }
     }
 
     function updateFaceByCoffee() {
@@ -1066,6 +1138,7 @@
       createOfficeRoom();
       createStaticEnemy();
       preloadGunFrames();
+      preloadDrinkingFrames();
 
       window.addEventListener("resize", onResize);
       document.addEventListener("keydown", onKeyDown);
@@ -1090,8 +1163,10 @@
       });
 
       coffeeControl.addEventListener("input", function () {
+        const previousCoffee = hud.coffee;
         hud.coffee = Number(coffeeControl.value);
         updateHud();
+        if (hud.coffee < previousCoffee) triggerScreenShake(0.55);
       });
 
       budgetControl.addEventListener("input", function () {
@@ -1100,8 +1175,7 @@
       });
 
       coffeeMinusBtn.addEventListener("click", function () {
-        hud.coffee -= 1;
-        updateHud();
+        loseCoffee(1);
       });
 
       coffeePlusBtn.addEventListener("click", function () {
@@ -1278,10 +1352,11 @@
     }
 
     function addCubicles(cubicleMaterial, topMaterial) {
+      // Todos quedan retirados de los muros para conservar pasillos transitables.
       const positions = [
-        [-13, -13], [-9, -13], [9, -13], [13, -13],
-        [-13, 13], [-9, 13], [9, 13], [13, 13],
-        [-14.5, -7], [-14.5, 7], [14.5, -7], [14.5, 7]
+        [-10.5, -10.5], [-6.5, -10.5], [6.5, -10.5], [10.5, -10.5],
+        [-10.5, 10.5], [-6.5, 10.5], [6.5, 10.5], [10.5, 10.5],
+        [-11, -4], [-11, 4], [11, -4], [11, 4]
       ];
       positions.forEach(p => addCubicle(p[0], p[1], cubicleMaterial, topMaterial));
     }
@@ -1316,12 +1391,13 @@
 
     function addPosters() {
       const posters = [
-        { x: -4.8, y: 3.05, z: -16.86, w: 2.3, h: 1.45, side: "north", file: "assets/poster1.png", label: "HIRING" },
-        { x: 4.8, y: 3.05, z: -16.86, w: 2.3, h: 1.45, side: "north", file: "assets/poster2.png", label: "BONUS" },
-        { x: -4.8, y: 3.05, z: 16.86, w: 2.3, h: 1.45, side: "south", file: "assets/poster3.png", label: "COFFEE" },
-        { x: 4.8, y: 3.05, z: 16.86, w: 2.3, h: 1.45, side: "south", file: "assets/poster4.png", label: "PTO" },
-        { x: -16.86, y: 3.05, z: -3.8, w: 2.3, h: 1.45, side: "west", file: "assets/poster1.png", label: "TARGETS" },
-        { x: 16.86, y: 3.05, z: 3.8, w: 2.3, h: 1.45, side: "east", file: "assets/poster2.png", label: "BUDGET" }
+        // Mantiene las mismas rutas y zonas de pared, pero respeta la forma real de cada póster nuevo.
+        { x: -4.8, y: 3.0, z: -16.86, w: 2.25, h: 2.25, side: "north", file: "assets/poster1.png", label: "JOIN THE TEAM" },
+        { x: 4.8, y: 3.0, z: -16.86, w: 1.72, h: 2.30, side: "north", file: "assets/poster2.png", label: "WE ARE HIRING" },
+        { x: -4.8, y: 3.0, z: 16.86, w: 1.58, h: 2.37, side: "south", file: "assets/poster3.png", label: "PIZZA PARTY" },
+        { x: 4.8, y: 3.0, z: 16.86, w: 1.58, h: 2.37, side: "south", file: "assets/poster4.png", label: "GREAT BENEFITS" },
+        { x: -16.86, y: 3.0, z: -3.8, w: 2.25, h: 2.25, side: "west", file: "assets/poster1.png", label: "JOIN THE TEAM" },
+        { x: 16.86, y: 3.0, z: 3.8, w: 1.72, h: 2.30, side: "east", file: "assets/poster2.png", label: "WE ARE HIRING" }
       ];
       posters.forEach(addPoster);
     }
@@ -1719,6 +1795,65 @@
       loadAnimationFrames("cafe_frames", "cafe", 3, coffeeAnimation, "webp");
     }
 
+    function drinkingFramePath(frameNumber, extension) {
+      return "assets/drinking_cofee/drinking_" + String(frameNumber).padStart(2, "0") + "." + (extension || "webp");
+    }
+
+    function preloadDrinkingFrames() {
+      for (let i = 0; i < drinkingAnimation.totalFrames; i++) {
+        const image = new Image();
+        let triedPng = false;
+
+        image.onload = function () {
+          drinkingAnimation.frames[i] = image;
+        };
+        image.onerror = function () {
+          // Permite usar los mismos nombres tanto si los frames son WebP como PNG.
+          if (!triedPng) {
+            triedPng = true;
+            image.src = drinkingFramePath(i, "png");
+          }
+        };
+        image.src = drinkingFramePath(i);
+      }
+    }
+
+    function playDrinkingAnimation() {
+      if (!faceImage || drinkingAnimation.active) return;
+
+      drinkingAnimation.active = true;
+      drinkingAnimation.frame = 0;
+      drinkingAnimation.timer = 0;
+      showDrinkingFaceFrame(0);
+    }
+
+    function showDrinkingFaceFrame(frameNumber) {
+      const cachedFrame = drinkingAnimation.frames[frameNumber];
+      const src = cachedFrame ? cachedFrame.src : drinkingFramePath(frameNumber);
+
+      faceImage.src = src;
+      faceImage.style.display = "block";
+      facePlaceholder.classList.add("hasImage");
+    }
+
+    function updateDrinkingAnimation(delta) {
+      if (!drinkingAnimation.active) return;
+
+      drinkingAnimation.timer += delta;
+      if (drinkingAnimation.timer < drinkingAnimation.frameTime) return;
+
+      drinkingAnimation.timer = 0;
+      drinkingAnimation.frame += 1;
+
+      if (drinkingAnimation.frame >= drinkingAnimation.totalFrames) {
+        drinkingAnimation.active = false;
+        faceAnimation.timer = 0;
+        return;
+      }
+
+      showDrinkingFaceFrame(drinkingAnimation.frame);
+    }
+
     function updateCoffeeThermos(delta) {
       coffeeSpawnTimer -= delta;
 
@@ -1740,6 +1875,7 @@
       if (distance < 1.15) {
         hud.coffee = Math.min(hud.maxCoffee, hud.coffee + 1);
         updateHud();
+        playDrinkingAnimation();
 
         scene.remove(coffeeThermos);
         if (coffeeThermos.material) coffeeThermos.material.dispose();
@@ -1814,8 +1950,7 @@
 
         if (distance < minDistance + 0.08 && enemy.touchCooldown <= 0) {
           if (hud.coffee > 0) {
-            hud.coffee = Math.max(0, hud.coffee - 1);
-            updateHud();
+            loseCoffee(1);
           }
 
           enemy.touchCooldown = 1.0;
@@ -1981,9 +2116,13 @@
         return;
       }
 
+      const activeFrameTime = gunAnimation.state === "shooting"
+        ? gunAnimation.shootFrameTime
+        : gunAnimation.reloadFrameTime;
+
       gunAnimation.timer += delta;
 
-      if (gunAnimation.timer < gunAnimation.frameTime) return;
+      if (gunAnimation.timer < activeFrameTime) return;
 
       gunAnimation.timer = 0;
       gunAnimation.frame += 1;
@@ -2024,22 +2163,37 @@
 
 
 
-    function getGunMuzzleScreenPosition() {
-      // Punto visual estable para la boquilla usando el contenedor del arma.
-      if (!moneyGun) {
-        return {
-          x: window.innerWidth * 0.82,
-          y: window.innerHeight - 160
-        };
-      }
 
-      const rect = moneyGun.getBoundingClientRect();
+    function getGunMuzzleScreenPosition() {
+      /*
+        Punto rojo marcado sobre el frame del arma:
+        - Frame original: 1654 x 929
+        - Punto rojo aproximado: x = 895.5, y = 532
+
+        Como ahora el arma se dibuja en canvas, usamos el rectángulo real del canvas
+        en pantalla y convertimos ese punto proporcionalmente.
+      */
+      const fallback = {
+        x: window.innerWidth * 0.82,
+        y: window.innerHeight - 160
+      };
+
+      const targetElement = gunCanvas || moneyGun;
+      if (!targetElement) return fallback;
+
+      const rect = targetElement.getBoundingClientRect();
+
+      if (!rect.width || !rect.height) return fallback;
+
+      const muzzleRatioX = 895.5 / 1654;
+      const muzzleRatioY = 532 / 929;
 
       return {
-        x: rect.left + rect.width * 0.52,
-        y: rect.top + rect.height * 0.58
+        x: rect.left + rect.width * muzzleRatioX,
+        y: rect.top + rect.height * muzzleRatioY
       };
     }
+
 
     function getCrosshairScreenPosition() {
       const crosshair = document.getElementById("crosshair");
@@ -2047,7 +2201,7 @@
       if (!crosshair) {
         return {
           x: window.innerWidth / 2,
-          y: window.innerHeight / 2 - 58
+          y: window.innerHeight / 2
         };
       }
 
@@ -2183,35 +2337,35 @@
 
 
     function spawnBillShot() {
-      // Los billetes salen desde la boquilla hacia la mira, no hacia un enemigo específico.
+      // La mira central conserva el impacto. El origen se gira 20° horario
+      // alrededor de ella para cambiar la inclinación de la trayectoria.
       const target = getCrosshairScreenPosition();
-
-      // Punto de salida calculado desde la boquilla real del arma.
       const muzzle = getGunMuzzleScreenPosition();
-      const startX = muzzle.x;
-      const startY = muzzle.y;
+      const rotation = billBurstSettings.trajectoryRotationDegrees * Math.PI / 180;
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+      const sourceOffsetX = muzzle.x - target.x;
+      const sourceOffsetY = muzzle.y - target.y;
+      const rotatedOffsetX = sourceOffsetX * cos - sourceOffsetY * sin;
+      const rotatedOffsetY = sourceOffsetX * sin + sourceOffsetY * cos;
 
       for (let i = 0; i < 3; i++) {
         const bill = document.createElement("div");
         bill.className = "screenBill";
         bill.textContent = "$";
 
-        const jitterStartX = startX + Math.random() * 18 - 9;
-        const jitterStartY = startY + Math.random() * 14 - 7;
+        const startX = target.x + rotatedOffsetX;
+        const startY = target.y + rotatedOffsetY;
 
-        // La mira es el destino principal; solo agregamos una ligera dispersión.
-        const jitterTargetX = target.x + Math.random() * 34 - 17;
-        const jitterTargetY = target.y + Math.random() * 34 - 17;
-
-        bill.style.left = jitterStartX + "px";
-        bill.style.top = jitterStartY + "px";
+        bill.style.left = startX + "px";
+        bill.style.top = startY + "px";
         bill.style.transform = "translate(-50%, -50%) rotate(" + (Math.random() * 26 - 13) + "deg) scale(1)";
 
         document.body.appendChild(bill);
 
-        const dx = jitterTargetX - jitterStartX;
-        const dy = jitterTargetY - jitterStartY;
-        const duration = 360 + i * 30;
+        const dx = target.x - startX;
+        const dy = target.y - startY;
+        const duration = billBurstSettings.billDuration + i * billBurstSettings.billDurationStep;
 
         bill.animate(
           [
@@ -2232,10 +2386,9 @@
         );
 
         setTimeout(function () {
-          // El impacto se calcula donde cae el billete: cerca de la mira.
-          registerBillImpact(jitterTargetX, jitterTargetY);
+          registerBillImpact(target.x, target.y);
           bill.remove();
-        }, duration + 40);
+        }, duration + billBurstSettings.impactPadding);
       }
     }
 
@@ -2244,18 +2397,18 @@
 
     function spawnBillBurst() {
       /*
-        Metralleta de billetes:
-        varias mini-ráfagas consecutivas durante la animación de disparo.
+        Metralleta de billetes.
+        Duración aproximada:
+        7 ráfagas * 70ms + duración visual del último billete ≈ 0.85s.
+        La animación del arma se aceleró para durar prácticamente lo mismo.
       */
-      const bursts = 7;
-      const delayBetweenBursts = 70;
-
-      for (let i = 0; i < bursts; i++) {
+      for (let i = 0; i < billBurstSettings.bursts; i++) {
         setTimeout(function () {
           spawnBillShot();
-        }, i * delayBetweenBursts);
+        }, i * billBurstSettings.delayBetweenBursts);
       }
     }
+
 
 
     function fireMoneyGun() {
@@ -2263,7 +2416,13 @@
 
       hud.budget = Math.max(0, hud.budget - 5000);
       updateHud();
+      triggerScreenShake(0.85);
       spawnBillBurst();
+    }
+
+    function triggerScreenShake(strength) {
+      cameraEffects.recoilTime = cameraEffects.recoilDuration;
+      cameraEffects.recoilStrength = strength;
     }
 
 
@@ -2295,8 +2454,7 @@
       if (event.code === "KeyR") reloadMoneyGun();
 
       if (event.code === "KeyC") {
-        hud.coffee = Math.max(0, hud.coffee - 1);
-        updateHud();
+        loseCoffee(1);
       }
 
       if (event.code === "KeyB") {
@@ -2353,6 +2511,8 @@
 
       const moveX = (forwardX * forward + rightX * right) * speed * delta;
       const moveZ = (forwardZ * forward + rightZ * right) * speed * delta;
+      const isMoving = forward !== 0 || right !== 0;
+      const isRunning = (keys["ShiftLeft"] || keys["ShiftRight"]) && isMoving;
 
       movePlayerWithCollision(moveX, moveZ);
 
@@ -2365,11 +2525,59 @@
         player.onGround = true;
       }
 
-      camera.position.set(player.x, player.y, player.z);
+      updateCameraEffects(delta, isMoving, isRunning, forwardX, forwardZ, rightX, rightZ);
+    }
+
+    function updateCameraEffects(delta, isMoving, isRunning, forwardX, forwardZ, rightX, rightZ) {
+      const bobSpeed = isRunning ? 17 : 11;
+      const lateralAmount = isRunning ? 0.052 : 0.026;
+      const verticalAmount = isRunning ? 0.042 : 0.022;
+      const rollAmount = isRunning ? 0.017 : 0.008;
+
+      if (isMoving && player.onGround) {
+        cameraEffects.walkTime += delta * bobSpeed;
+      }
+
+      const targetLateral = isMoving && player.onGround
+        ? Math.sin(cameraEffects.walkTime) * lateralAmount
+        : 0;
+      const targetVertical = isMoving && player.onGround
+        ? Math.abs(Math.cos(cameraEffects.walkTime * 2)) * verticalAmount
+        : 0;
+      const targetRoll = isMoving && player.onGround
+        ? Math.sin(cameraEffects.walkTime) * rollAmount
+        : 0;
+      const smoothing = Math.min(1, delta * 13);
+
+      cameraEffects.lateralOffset += (targetLateral - cameraEffects.lateralOffset) * smoothing;
+      cameraEffects.verticalOffset += (targetVertical - cameraEffects.verticalOffset) * smoothing;
+      cameraEffects.roll += (targetRoll - cameraEffects.roll) * smoothing;
+
+      let shakeX = 0;
+      let shakeY = 0;
+      let shakePitch = 0;
+      let shakeRoll = 0;
+
+      if (cameraEffects.recoilTime > 0) {
+        cameraEffects.recoilTime = Math.max(0, cameraEffects.recoilTime - delta);
+        const intensity = (cameraEffects.recoilTime / cameraEffects.recoilDuration) * cameraEffects.recoilStrength;
+        const shakeTime = performance.now() * 0.001;
+
+        shakeX = Math.sin(shakeTime * 92) * 0.045 * intensity;
+        shakeY = Math.cos(shakeTime * 128) * 0.03 * intensity;
+        shakePitch = -0.022 * intensity;
+        shakeRoll = Math.sin(shakeTime * 76) * 0.012 * intensity;
+      }
+
+      camera.position.set(
+        player.x + rightX * (cameraEffects.lateralOffset + shakeX) + forwardX * shakeY * 0.25,
+        player.y + cameraEffects.verticalOffset + shakeY,
+        player.z + rightZ * (cameraEffects.lateralOffset + shakeX) + forwardZ * shakeY * 0.25
+      );
       camera.rotation.order = "YXZ";
       camera.rotation.y = yaw;
-      camera.rotation.x = pitch;
-      camera.rotation.z = 0;
+      camera.rotation.x = pitch + shakePitch;
+      camera.rotation.z = cameraEffects.roll + shakeRoll;
     }
 
     function animate() {
@@ -2382,6 +2590,7 @@
       updateEnemyContact(delta);
       updateEnemySpawner(delta);
       updateGunAnimation(delta);
+      updateDrinkingAnimation(delta);
       updateFaceAnimation(delta);
       renderer.render(scene, camera);
     }

@@ -1675,3 +1675,19 @@ input, textarea{
     order: 2;
   }
 }
+
+
+/* ================= CLEAN CONTACT SECTION =================
+   Google Form removed: keep contact section compact and centered.
+*/
+#contact{
+  min-height: auto !important;
+  display: block !important;
+}
+
+#contact .contact-grid{
+  grid-template-columns: 1fr !important;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -22,9 +22,13 @@ function radarOptions() {
   };
 }
 
-if (window.Chart) {
+const hardSkillsCanvas = document.getElementById("hardSkillsChart");
+const softSkillsCanvas = document.getElementById("softSkillsChart");
+const toolsTimelineCanvas = document.getElementById("toolsTimelineChart");
+
+if (window.Chart && hardSkillsCanvas && softSkillsCanvas && toolsTimelineCanvas) {
   // Hard skills radar
-  new Chart(document.getElementById("hardSkillsChart"), {
+  new Chart(hardSkillsCanvas, {
     type: "radar",
     data: {
       labels: ["Data Analysis","Python","SQL","Power BI","Automation"],
@@ -40,7 +44,7 @@ if (window.Chart) {
   });
 
   // Soft skills radar
-  new Chart(document.getElementById("softSkillsChart"), {
+  new Chart(softSkillsCanvas, {
     type: "radar",
     data: {
       labels: ["Communication","Problem Solving","Attention to Detail","Process Thinking","Autonomy"],
@@ -66,7 +70,7 @@ if (window.Chart) {
   ];
 
   // Stacked bars: DO NOT cap at 10
-  new Chart(document.getElementById("toolsTimelineChart"), {
+  new Chart(toolsTimelineCanvas, {
     type: "bar",
     data: {
       labels: ["2017","2018","2019","2020","2021","2022","2023","2024"],
